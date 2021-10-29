@@ -1,3 +1,5 @@
+/* eslint-disable prettier/prettier */
+import { NextApiRequest, NextApiResponse } from 'next';
 import { IFindEventReq } from '@/controllers/event/interface/IFindEventReq';
 import { IUpdateEventReq } from '@/controllers/event/interface/IUpdateEventReq';
 import { JSCFindEvent } from '@/controllers/event/jsc/JSCFindEvent';
@@ -5,99 +7,113 @@ import { JSCUpdateEvent } from '@/controllers/event/jsc/JSCUpdateEvent';
 import FirebaseAdmin from '@/models/commons/firebase_admin.model';
 import validateParamWithData from '@/models/commons/req_validator';
 import { IEvent } from '@/models/interface/IEvent';
-import { NextApiRequest, NextApiResponse } from 'next';
 import debug from '../../../../utils/debug_log';
 
 const log = debug('masa:api:events:[eventId]:index');
 
+interface IResponse {
+  ok: boolean;
+  htmlStatus: number;
+  error?: string;
+  data?: any;
+}
+
+const getDocument = async (
+  eventId: string,
+): Promise<FirebaseFirestore.DocumentSnapshot<FirebaseFirestore.DocumentData>> => {
+  const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(eventId);
+  const doc = await ref.get();
+  return doc;
+};
+const getEvent = async (query: any): Promise<IResponse> => {
+  const validateReq = validateParamWithData<IFindEventReq>({ params: query }, JSCFindEvent);
+  if (validateReq.result === false) {
+    return { ok: false, htmlStatus: 400, error: validateReq.errorMessage };
+  }
+  log(`validateReq.result: ${validateReq.result}`);
+  const doc = await getDocument(validateReq.data.params.eventId);
+
+  if (doc.exists === false) {
+    return { ok: false, htmlStatus: 404, error: '문서가 없어요' };
+  }
+
+  return {
+    ok: true,
+    htmlStatus: 200,
+    data: { ...doc.data(), id: validateReq.data.params.eventId },
+  };
+};
+interface IUpdateEvent {
+  token: string;
+  query: any;
+  body: any;
+}
+const updateEvent = async ({ token, query, body }: IUpdateEvent): Promise<IResponse> => {
+  let userId = '';
+  try {
+    const decodedIdToken = await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
+    userId = decodedIdToken.uid;
+  } catch (err) {
+    return { ok: false, htmlStatus: 400, error: '이상한 토큰' };
+  }
+
+  const validateReq = validateParamWithData<IUpdateEventReq>({ params: query, body }, JSCUpdateEvent);
+  if (validateReq.result === false) {
+    return { ok: false, htmlStatus: 400, error: validateReq.errorMessage };
+  }
+  const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(validateReq.data.params.eventId);
+  const doc = await ref.get();
+  // 문서가 존재하지않는가?
+  if (doc.exists === false) {
+    return { ok: false, htmlStatus: 404, error: '' };
+  }
+  const eventInfo = doc.data() as IEvent;
+  if (eventInfo.ownerId !== userId) {
+    return { ok: false, htmlStatus: 401, error: '이벤트 수정 권한이 없습니다' };
+  }
+
+  // eventInfo.closed = validateReq.data.body.closed ?? false;
+  // 업데이트할 값
+  const updateData = {
+    ...eventInfo,
+    ...validateReq.data.body,
+  };
+  // 문서에 변경할 값을 넣어줍니다.
+  await ref.update(updateData);
+  return {
+    ok: true,
+    htmlStatus: 201,
+    data: updateData,
+  };
+};
+
 export default async function handle(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   // eslint-disable-next-line no-console
-  const { method, query } = req;
+  const { method, query, body } = req;
   log(method);
-
-  const supportMethod = ['PUT', 'GET'];
-  if (supportMethod.indexOf(method!) === -1) {
+  const supportedMethod = ['PUT', 'GET'];
+  if (supportedMethod.indexOf(method!) === -1) {
     return res.status(400).end();
   }
   if (method === 'GET') {
-    // 검증
-    const validateReq = validateParamWithData<IFindEventReq>(
-      {
-        params: req.query as any,
-      },
-      JSCFindEvent,
-    );
-    if (validateReq.result === false) {
-      return res.status(400).json({
-        text: validateReq.errorMessage,
-      });
+    const result = await getEvent(query);
+    if (result.ok) {
+      return res.status(result.htmlStatus).json(result.data);
     }
-    log(`validateReq.result: ${validateReq.result}`);
 
-    // 데이터 조작(READ)
-    const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(validateReq.data.params.eventId);
-    const doc = await ref.get();
-    // 문서가 존재하지않는가?
-    if (doc.exists === false) {
-      res.status(404).end('문서가 없어요');
-      return;
-    }
-    const returnValue = {
-      ...doc.data(),
-      id: validateReq.data.params.eventId,
-    };
-    res.json(returnValue);
+    return res.status(result.htmlStatus).send(result.error);
   }
-
-  // PUT 메서드 처리
   if (method === 'PUT') {
-    // 코드 복사 후 IUpdateEventReq, JSCUpdateEvent 2가지는 import 시켜야합니다.
     const token = req.headers.authorization;
     if (token === undefined) {
       return res.status(400).end('token?');
     }
-    let userId = '';
-    try {
-      const decodedIdToken = await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
-      userId = decodedIdToken.uid;
-    } catch (err) {
-      return res.status(400).end('이상한 토큰');
+    const result = await updateEvent({ token, query, body });
+
+    if (result.ok) {
+      return res.status(result.htmlStatus).json(result.data);
     }
 
-    const validateReq = validateParamWithData<IUpdateEventReq>(
-      {
-        params: req.query as any,
-        body: req.body,
-      },
-      JSCUpdateEvent,
-    );
-    log(req.body);
-    if (validateReq.result === false) {
-      return res.status(400).json({
-        text: validateReq.errorMessage,
-      });
-    }
-    const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(validateReq.data.params.eventId);
-    const doc = await ref.get();
-    // 문서가 존재하지않는가?
-    if (doc.exists === false) {
-      res.status(404).end();
-    }
-    const eventInfo = doc.data() as IEvent; // doc.data() 결과를 IEvent 인터페이스로 캐스팅
-    if (eventInfo.ownerId !== userId) {
-      return res.status(401).json({
-        text: '이벤트 수정 권한이 없습니다',
-      });
-    }
-
-    // eventInfo.closed = validateReq.data.body.closed ?? false;
-    // 업데이트할 값
-    const updateData = {
-      ...eventInfo,
-      ...validateReq.data.body,
-    };
-    // 문서에 변경할 값을 넣어줍니다.
-    await ref.update(updateData);
-    res.json(updateData);
+    return res.status(result.htmlStatus).send(result.error);
   }
 }
