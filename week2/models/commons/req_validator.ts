@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import Ajv from 'ajv';
 import { JSONSchema6 } from 'json-schema';
 import debug from '../../utils/debug_log';
@@ -5,6 +6,7 @@ import debug from '../../utils/debug_log';
 const log = debug('masa:models:req_validator');
 
 function validateParamWithData<T>(
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   param: any,
   schema: JSONSchema6,
 ): {
