@@ -1,12 +1,43 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { IAddEventReq } from '@/controllers/event/interface/IAddEventReq';
+import { JSCAddEvent } from '@/controllers/event/jsc/JSCAddEvent';
+import validateParamWithData from '@/models/commons/req_validator';
 import debug from '../../../utils/debug_log';
+import { IEvent } from '@/models/interface/IEvent';
+import FirebaseAdmin from '@/models/commons/firebase_admin.model';
 
 const log = debug('masa:api:events:index');
 
 /** 이벤트 root */
 export default async function handle(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   // eslint-disable-next-line no-console
-  const { method } = req;
+  const { method, body } = req;
   log(method);
-  res.status(400).send('bad request');
+
+  const validateReq = validateParamWithData<IAddEventReq>({ body }, JSCAddEvent);
+  if (validateReq.result === false) {
+    return res.status(400).json({ text: validateReq.errorMessage });
+  }
+
+  const {
+    title,
+    desc,
+    owner: { uid, displayName },
+    lastOrder,
+  } = validateReq.data.body;
+
+  const addData: Omit<IEvent, 'id'> = {
+    title,
+    desc: desc ?? '',
+    ownerId: uid,
+    ownerName: displayName ?? '',
+    closed: false,
+  };
+  if (lastOrder !== undefined) {
+    addData.lastOrder = lastOrder;
+  }
+  const result = await FirebaseAdmin.getInstance().Firestore.collection('events').add(addData);
+
+  const returnValue = { ...addData, id: result.id };
+  res.json(returnValue);
 }

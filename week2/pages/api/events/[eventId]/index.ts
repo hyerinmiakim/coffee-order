@@ -18,12 +18,19 @@ interface IResponse {
   data?: any;
 }
 
-const getDocument = async (
-  eventId: string,
-): Promise<FirebaseFirestore.DocumentSnapshot<FirebaseFirestore.DocumentData>> => {
-  const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(eventId);
+const getDocumentData = async (
+  ref: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>,
+): Promise<IResponse> => {
   const doc = await ref.get();
-  return doc;
+
+  if (doc.exists === false) {
+    return { ok: false, htmlStatus: 404, error: '이벤트와 일치하는 문서가 없습니다.' };
+  }
+  return {
+    ok: true,
+    htmlStatus: 200,
+    data: doc.data(),
+  };
 };
 const getEvent = async (query: any): Promise<IResponse> => {
   const validateReq = validateParamWithData<IFindEventReq>({ params: query }, JSCFindEvent);
@@ -31,18 +38,19 @@ const getEvent = async (query: any): Promise<IResponse> => {
     return { ok: false, htmlStatus: 400, error: validateReq.errorMessage };
   }
   log(`validateReq.result: ${validateReq.result}`);
-  const doc = await getDocument(validateReq.data.params.eventId);
-
-  if (doc.exists === false) {
-    return { ok: false, htmlStatus: 404, error: '문서가 없어요' };
+  const { eventId } = validateReq.data.params;
+  const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(eventId);
+  const documentData = await getDocumentData(ref);
+  if (!documentData.ok) {
+    return { ok: false, htmlStatus: documentData.htmlStatus, error: documentData.error };
   }
-
   return {
     ok: true,
-    htmlStatus: 200,
-    data: { ...doc.data(), id: validateReq.data.params.eventId },
+    htmlStatus: documentData.htmlStatus,
+    data: { ...documentData.data, id: validateReq.data.params.eventId },
   };
 };
+
 interface IUpdateEvent {
   token: string;
   query: any;
@@ -61,13 +69,14 @@ const updateEvent = async ({ token, query, body }: IUpdateEvent): Promise<IRespo
   if (validateReq.result === false) {
     return { ok: false, htmlStatus: 400, error: validateReq.errorMessage };
   }
-  const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(validateReq.data.params.eventId);
-  const doc = await ref.get();
+  const { eventId } = validateReq.data.params;
+  const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(eventId);
+  const documentData = await getDocumentData(ref);
   // 문서가 존재하지않는가?
-  if (doc.exists === false) {
-    return { ok: false, htmlStatus: 404, error: '' };
+  if (!documentData.ok) {
+    return { ok: false, htmlStatus: documentData.htmlStatus, error: documentData.error };
   }
-  const eventInfo = doc.data() as IEvent;
+  const eventInfo = documentData.data as IEvent;
   if (eventInfo.ownerId !== userId) {
     return { ok: false, htmlStatus: 401, error: '이벤트 수정 권한이 없습니다' };
   }
@@ -88,7 +97,6 @@ const updateEvent = async ({ token, query, body }: IUpdateEvent): Promise<IRespo
 };
 
 export default async function handle(req: NextApiRequest, res: NextApiResponse): Promise<void> {
-  // eslint-disable-next-line no-console
   const { method, query, body } = req;
   log(method);
   const supportedMethod = ['PUT', 'GET'];
