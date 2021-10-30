@@ -18,6 +18,9 @@ interface IResponse {
   data?: any;
 }
 
+const getReference = (eventId: string): FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> =>
+  FirebaseAdmin.getInstance().Firestore.collection('events').doc(eventId);
+
 const getDocumentData = async (
   ref: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>,
 ): Promise<IResponse> => {
@@ -39,7 +42,7 @@ const getEvent = async (query: any): Promise<IResponse> => {
   }
   log(`validateReq.result: ${validateReq.result}`);
   const { eventId } = validateReq.data.params;
-  const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(eventId);
+  const ref = getReference(eventId);
   const documentData = await getDocumentData(ref);
   if (!documentData.ok) {
     return { ok: false, htmlStatus: documentData.htmlStatus, error: documentData.error };
@@ -70,7 +73,7 @@ const updateEvent = async ({ token, query, body }: IUpdateEvent): Promise<IRespo
     return { ok: false, htmlStatus: 400, error: validateReq.errorMessage };
   }
   const { eventId } = validateReq.data.params;
-  const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(eventId);
+  const ref = getReference(eventId);
   const documentData = await getDocumentData(ref);
   // 문서가 존재하지않는가?
   if (!documentData.ok) {
