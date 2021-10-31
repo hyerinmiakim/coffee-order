@@ -1,11 +1,8 @@
-import { IAddEventReq } from '@/controllers/event/interface/IAddEventReq';
-import { JSCAddEvent } from '@/controllers/event/jsc/JSCAddEvent';
 import FirebaseAdmin from '@/models/commons/firebase_admin.model';
-import validateParamWithData from '@/models/commons/req_validator';
 import { IEvent } from '@/models/interface/IEvent';
-import { auth } from 'firebase-admin';
 import { NextApiRequest, NextApiResponse } from 'next';
 import debug from '../../../utils/debug_log';
+import { checkAuthority, checkValidation, Methods } from './[eventId]';
 
 const log = debug('masa:api:events:index');
 
@@ -25,29 +22,12 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
     return res.status(400).end();
   }
 
-  const token = req.headers.authorization;
-  if (token === undefined) {
-    return res.status(400).end();
-  }
-  let userInfo: auth.DecodedIdToken | null = null;
-  try {
-    userInfo = await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
-  } catch (err) {
-    return res.status(400).end();
-  }
-
-  const validateReq = validateParamWithData<IAddEventReq>(
-    {
-      body : req.body
-    },
-    JSCAddEvent,
-  );
-
-  if (validateReq.result === false) {
-    return res.status(400).json({
-      text: validateReq.errorMessage,
-    });
-  }
+  const uId = await checkAuthority(req,res);
+  /*
+    QUESTION: 이벤트 생성일 때도, 사용자 ID 기준으로 사용자 권한 체크를 하는 것으로 보여서 수정했습니다.
+              이렇게 해도 될까요? 
+  */
+  const validateReq = checkValidation(req,res,Methods.POST)
 
   const {
     title,
@@ -56,7 +36,7 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
     lastOrder,
   } = validateReq.data.body;
 
-  if (userInfo !== null && userInfo.uid !== uid) {
+  if (uId !== null && uId !== uid) {
     return res.status(400).end(); //uid validation
   }
 
