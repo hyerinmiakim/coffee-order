@@ -2,7 +2,8 @@ import FirebaseAdmin from '@/models/commons/firebase_admin.model';
 import { IEvent } from '@/models/interface/IEvent';
 import { NextApiRequest, NextApiResponse } from 'next';
 import debug from '../../../utils/debug_log';
-import { checkAuthority, checkValidation, Methods } from './[eventId]';
+import { Methods } from './[eventId]';
+import { checkValidation, checkAuthority } from './[eventId]/checkRequest';
 
 const log = debug('masa:api:events:index');
 
