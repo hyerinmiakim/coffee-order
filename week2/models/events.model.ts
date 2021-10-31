@@ -28,12 +28,12 @@ class EventType {
   }
 
   /** 이벤트 조회 */
-  async find({ eventId }: { eventId: string }): Promise<IEvent & { id: string }> {
+  async find({ eventId }: { eventId: string }): Promise<(IEvent & { id: string }) | null> {
     try {
       const eventSnap = await this.EventDoc(eventId).get();
       log(eventSnap.exists);
       if (eventSnap.exists === false) {
-        throw new Error('not exist event');
+        return null;
       }
       return {
         ...eventSnap.data(),
@@ -82,17 +82,20 @@ class EventType {
     private?: boolean;
     lastOrder?: Date;
     closed?: boolean;
-  }) {
-    const findResult = await this.find({ eventId: args.id });
+  }): Promise<(IEvent & { id: string }) | null> {
+    const { id, ...argsWithoutId } = args;
+    const findResult = await this.find({ eventId: id });
     log(findResult);
     if (findResult === undefined || findResult === null) {
-      throw new Error('not exist event');
+      return null;
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id: _, ...findResultWithoutId } = findResult;
+    const updateData = {
+      ...findResultWithoutId,
+      ...argsWithoutId,
+    };
     try {
-      const updateData = {
-        ...findResult,
-        ...args,
-      };
       const eventSnap = this.EventDoc(args.id);
       await eventSnap.update(updateData);
       const updateFindResult = await this.find({ eventId: args.id });
