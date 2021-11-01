@@ -3,6 +3,7 @@ import { IUpdateEventReq } from '@/controllers/event/interface/IUpdateEventReq';
 import { JSCFindEvent } from '@/controllers/event/jsc/JSCFindEvent';
 import { JSCUpdateEvent } from '@/controllers/event/jsc/JSCUpdateEvent';
 import FirebaseAdmin from '@/models/commons/firebase_admin.model';
+import { EventModel } from "../../../models/eventsModel";
 import validateParamWithData from '@/models/commons/req_validator';
 import { IEvent } from '@/models/interface/IEvent';
 import { NextApiRequest, NextApiResponse } from 'next';
@@ -36,10 +37,8 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
     log(`validateReq.result: ${validateReq.result}`);
 
     // 데이터 조작 (Read)
-    const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(validateReq.data.params.eventId);
-    const doc = await ref.get();
-    log("chk " + validateReq.data.params.eventId + " " + doc.exists);
-    console.log("test document", doc);
+    const doc = await EventModel.findOneWithId(validateReq.data.params.eventId);
+    log("chk " + validateReq.data.params.eventId);
     // 문서가 존재하지않는가?
     if (doc.exists === false) {
       res.status(404).end("document not found");
@@ -80,8 +79,7 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
         text: validateReq.errorMessage,
       });
     }
-    const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(validateReq.data.params.eventId);
-    const doc = await ref.get();
+    const doc = await EventModel.findOneWithId(validateReq.data.params.eventId);
     // 문서가 존재하지않는가?
     if (doc.exists === false) {
       res.status(404).end();
@@ -100,7 +98,7 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
       ...validateReq.data.body,
     };
     // 문서에 변경할 값을 넣어줍니다.
-    await ref.update(updateData);
+    await EventModel.updateEvent(updateData);
     res.json(updateData);
   }
 };
