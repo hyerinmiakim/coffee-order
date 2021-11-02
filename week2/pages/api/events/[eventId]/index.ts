@@ -3,7 +3,8 @@ import { IUpdateEventReq } from '@/controllers/event/interface/IUpdateEventReq';
 import { JSCFindEvent } from '@/controllers/event/jsc/JSCFindEvent';
 import { JSCUpdateEvent } from '@/controllers/event/jsc/JSCUpdateEvent';
 import FirebaseAdmin from '@/models/commons/firebase_admin.model';
-import { EventModel } from "../../../models/eventsModel";
+import { EventModel } from '../../../models/eventsModel';
+import * as eventService from '../../../services/eventService';
 import validateParamWithData from '@/models/commons/req_validator';
 import { IEvent } from '@/models/interface/IEvent';
 import { NextApiRequest, NextApiResponse } from 'next';
@@ -37,19 +38,16 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
     log(`validateReq.result: ${validateReq.result}`);
 
     // 데이터 조작 (Read)
-    const doc = await EventModel.findOneWithId(validateReq.data.params.eventId);
-    log("chk " + validateReq.data.params.eventId);
+    const returnValue = await eventService.getEvent(validateReq.data.params.eventId);
     // 문서가 존재하지않는가?
-    if (doc.exists === false) {
+    if (!returnValue) {
       res.status(404).end("document not found");
       return;
     }
-
-    const returnValue = {
-      ...doc.data(),
-      id: validateReq.data.params.eventId,
-    };
-    res.json(returnValue);
+    res.json({
+      ...returnValue, 
+      id: validateReq.data.params.eventId
+    });
   }
 
   // PUT 메서드 처리
@@ -79,26 +77,22 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
         text: validateReq.errorMessage,
       });
     }
-    const doc = await EventModel.findOneWithId(validateReq.data.params.eventId);
+    const eventData = await eventService.getEvent(validateReq.data.params.eventId);
     // 문서가 존재하지않는가?
-    if (doc.exists === false) {
+    if (!eventData) {
       res.status(404).end();
       return;
     }
     
-    const eventInfo = doc.data() as IEvent; // doc.data() 결과를 IEvent 인터페이스로 캐스팅
-    if (eventInfo.ownerId !== userId) {
+    // const eventInfo = doc.data() as IEvent; // doc.data() 결과를 IEvent 인터페이스로 캐스팅
+    if (eventData.ownerId !== userId) {
       return res.status(401).json({
         text: '이벤트 수정 권한이 없습니다',
       });
     }
 
-    const updateData = {
-      ...eventInfo,
-      ...validateReq.data.body,
-    };
     // 문서에 변경할 값을 넣어줍니다.
-    await EventModel.updateEvent(updateData);
+    const updateData = await eventService.updateEvent(eventData, validateReq.data.body);
     res.json(updateData);
   }
 };
