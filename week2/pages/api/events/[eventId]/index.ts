@@ -13,6 +13,35 @@ const log = debug('masa:api:events:[eventId]:index');
 const getDocumentRef = (collenctionName: string, docId: string) =>
   FirebaseAdmin.getInstance().Firestore.collection(collenctionName).doc(docId);
 
+const handleGet = async (req: NextApiRequest, res: NextApiResponse) => {
+  const validateReq = validateParamWithData<IFindEventReq>(
+    {
+      params: req.query as any,
+    },
+    JSCFindEvent,
+  );
+  if (validateReq.result === false) {
+    return res.status(400).json({
+      text: validateReq.errorMessage,
+    });
+  }
+  log(`validateReq.result: ${validateReq.result}`);
+
+  // 데이터 조작(READ)
+  const ref = getDocumentRef('events', validateReq.data.params.eventId);
+  const doc = await ref.get();
+  // 문서가 존재하지않는가?
+  if (doc.exists === false) {
+    res.status(404).end('문서가 없어요');
+    return;
+  }
+  const returnValue = {
+    ...doc.data(),
+    id: validateReq.data.params.eventId,
+  };
+  res.json(returnValue);
+};
+
 export default async function handle(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   // eslint-disable-next-line no-console
   const { method, query } = req;
@@ -23,33 +52,7 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
     return res.status(400).end();
   }
   if (method === 'GET') {
-    // 검증
-    const validateReq = validateParamWithData<IFindEventReq>(
-      {
-        params: req.query as any,
-      },
-      JSCFindEvent,
-    );
-    if (validateReq.result === false) {
-      return res.status(400).json({
-        text: validateReq.errorMessage,
-      });
-    }
-    log(`validateReq.result: ${validateReq.result}`);
-
-    // 데이터 조작(READ)
-    const ref = getDocumentRef('events', validateReq.data.params.eventId);
-    const doc = await ref.get();
-    // 문서가 존재하지않는가?
-    if (doc.exists === false) {
-      res.status(404).end('문서가 없어요');
-      return;
-    }
-    const returnValue = {
-      ...doc.data(),
-      id: validateReq.data.params.eventId,
-    };
-    res.json(returnValue);
+    return handleGet(req, res);
   }
 
   // PUT 메서드 처리
