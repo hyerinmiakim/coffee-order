@@ -1,3 +1,5 @@
+/* eslint-disable prettier/prettier */
+
 import { IFindEventReq } from '@/controllers/event/interface/IFindEventReq';
 import { IUpdateEventReq } from '@/controllers/event/interface/IUpdateEventReq';
 import { JSCFindEvent } from '@/controllers/event/jsc/JSCFindEvent';
@@ -6,15 +8,17 @@ import FirebaseAdmin from '@/models/commons/firebase_admin.model';
 import validateParamWithData from '@/models/commons/req_validator';
 import { IEvent } from '@/models/interface/IEvent';
 import { NextApiRequest, NextApiResponse } from 'next';
-import debug from '../../../../utils/debug_log';
+import debug from '@/utils/debug_log';
 
 const log = debug('masa:api:events:[eventId]:index');
 
 const reference = (id: string) => FirebaseAdmin.getInstance().Firestore.collection('events').doc(id);
 
+
+//todo : exception handling, token 검증
 export default async function handle(req: NextApiRequest, res: NextApiResponse): Promise<void> {
 	// eslint-disable-next-line no-console
-	const { method, query } = req;
+	const { method } = req;
 	log(method);
 
 	const supportMethod = ['PUT', 'GET'];
@@ -24,12 +28,12 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
 
 	// GET 메서드 처리
 	if (method === 'GET') {
-		getHandler(req,res);
+		getHandler(req, res);
 	}
 
 	// PUT 메서드 처리
 	if (method === 'PUT') {
-		putHandler(req,res);
+		putHandler(req, res);
 	}
 }
 
@@ -63,17 +67,7 @@ const getHandler = async (req: NextApiRequest, res: NextApiResponse) => {
 }
 
 const putHandler = async (req: NextApiRequest, res: NextApiResponse) => {
-	const token = req.headers.authorization;
-	if (token === undefined) {
-		return res.status(400).end('token?');
-	}
-	let userId = '';
-	try {
-		const decodedIdToken = await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
-		userId = decodedIdToken.uid;
-	} catch (err) {
-		return res.status(400).end('이상한 토큰');
-	}
+	const userId = await validateToken(req, res);
 
 	const validateReq = validateParamWithData<IUpdateEventReq>(
 		{
@@ -93,6 +87,7 @@ const putHandler = async (req: NextApiRequest, res: NextApiResponse) => {
 	// 문서가 존재하지않는가?
 	if (doc.exists === false) {
 		res.status(404).end();
+		return;
 	}
 	const eventInfo = doc.data() as IEvent; // doc.data() 결과를 IEvent 인터페이스로 캐스팅
 	if (eventInfo.ownerId !== userId) {
@@ -110,4 +105,19 @@ const putHandler = async (req: NextApiRequest, res: NextApiResponse) => {
 	// 문서에 변경할 값을 넣어줍니다.
 	await ref.update(updateData);
 	res.json(updateData);
+}
+
+const validateToken = async (req: NextApiRequest, res: NextApiResponse) => {
+	const token = req.headers.authorization;
+	if (token === undefined) {
+		return res.status(400).end('token?');
+	}
+	let userId = '';
+	try {
+		const decodedIdToken = await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
+		userId = decodedIdToken.uid;
+		return userId;
+	} catch (err) {
+		return res.status(400).end('이상한 토큰');
+	}
 }
