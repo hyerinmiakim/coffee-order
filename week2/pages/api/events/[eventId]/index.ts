@@ -21,17 +21,7 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
   }
 
   if (method === 'GET') {
-    const validateReq = validateParamWithData<IFindEventReq>(
-      {
-        params: req.query as any,
-      },
-      JSCFindEvent,
-    );
-    if (validateReq.result === false) {
-      return res.status(400).json({
-        text: validateReq.errorMessage,
-      });
-    }
+    const validateReq = getValidatReq(req, res);
     log(`validateReq.result: ${validateReq.result}`);
     const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(validateReq.data.params.eventId);
     const doc = await ref.get();
@@ -60,19 +50,7 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
       return res.status(400).end();
     }
 
-    const validateReq = validateParamWithData<IUpdateEventReq>(
-      {
-        params: req.query as any,
-        body: req.body,
-      },
-      JSCUpdateEvent,
-    );
-    log(req.body);
-    if (validateReq.result === false) {
-      return res.status(400).json({
-        text: validateReq.errorMessage,
-      });
-    }
+    const validateReq = getValidatReq(req, res);
     const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(validateReq.data.params.eventId);
     const doc = await ref.get();
     // 문서가 존재하지않는가?
@@ -95,4 +73,21 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
     await ref.update(updateData);
     res.json(updateData);
   }
+}
+
+function getValidatReq(req: NextApiRequest, res: NextApiResponse): any {
+  const validateReq = validateParamWithData<IFindEventReq>(
+    {
+      params: req.query as any,
+      body: req.body,
+    },
+    JSCFindEvent,
+  );
+
+  if (validateReq.result === false) {
+    return res.status(400).json({
+      text: validateReq.errorMessage,
+    });
+  }
+  return validateReq;
 }
