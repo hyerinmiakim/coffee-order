@@ -1,5 +1,3 @@
-/* eslint-disable prettier/prettier */
-
 import { IFindEventReq } from '@/controllers/event/interface/IFindEventReq';
 import { IUpdateEventReq } from '@/controllers/event/interface/IUpdateEventReq';
 import { JSCFindEvent } from '@/controllers/event/jsc/JSCFindEvent';
@@ -7,15 +5,14 @@ import { JSCUpdateEvent } from '@/controllers/event/jsc/JSCUpdateEvent';
 import FirebaseAdmin from '@/models/commons/firebase_admin.model';
 import validateParamWithData from '@/models/commons/req_validator';
 import { IEvent } from '@/models/interface/IEvent';
-import { NextApiRequest, NextApiResponse } from 'next';
 import debug from '@/utils/debug_log';
+import { NextApiRequest, NextApiResponse } from 'next';
 
 const log = debug('masa:api:events:[eventId]:index');
 
 const reference = (id: string) => FirebaseAdmin.getInstance().Firestore.collection('events').doc(id);
 
 
-//todo : exception handling, token 검증
 export default async function handle(req: NextApiRequest, res: NextApiResponse): Promise<void> {
 	// eslint-disable-next-line no-console
 	const { method } = req;
