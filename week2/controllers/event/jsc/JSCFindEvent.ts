@@ -7,6 +7,9 @@ export const JSCFindEvent: JSONSchema6 = {
         eventId: {
           type: 'string',
         },
+        test: {
+          type: 'number',
+        },
       },
       required: ['eventId'],
     },
