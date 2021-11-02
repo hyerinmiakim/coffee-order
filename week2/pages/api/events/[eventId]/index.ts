@@ -10,6 +10,9 @@ import debug from '../../../../utils/debug_log';
 
 const log = debug('masa:api:events:[eventId]:index');
 
+const getDocumentRef = (collenctionName: string, docId: string) =>
+  FirebaseAdmin.getInstance().Firestore.collection(collenctionName).doc(docId);
+
 export default async function handle(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   // eslint-disable-next-line no-console
   const { method, query } = req;
@@ -35,7 +38,7 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
     log(`validateReq.result: ${validateReq.result}`);
 
     // 데이터 조작(READ)
-    const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(validateReq.data.params.eventId);
+    const ref = getDocumentRef('events', validateReq.data.params.eventId);
     const doc = await ref.get();
     // 문서가 존재하지않는가?
     if (doc.exists === false) {
@@ -77,7 +80,7 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
         text: validateReq.errorMessage,
       });
     }
-    const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(validateReq.data.params.eventId);
+    const ref = getDocumentRef('events', validateReq.data.params.eventId);
     const doc = await ref.get();
     // 문서가 존재하지않는가?
     if (doc.exists === false) {
