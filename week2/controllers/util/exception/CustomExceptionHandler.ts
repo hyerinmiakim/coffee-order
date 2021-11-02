@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { HttpStatus } from './HttpStatus';
 
 export class CustomExceptionHandler extends Error {
