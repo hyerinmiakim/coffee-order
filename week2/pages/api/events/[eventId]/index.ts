@@ -5,12 +5,14 @@ import { JSCUpdateEvent } from '@/controllers/event/jsc/JSCUpdateEvent';
 import FirebaseAdmin from '@/models/commons/firebase_admin.model';
 import { EventModel } from '../../../models/eventsModel';
 import * as eventService from '../../../services/eventService';
+import { ValidateResult } from "../../../types";
 import validateParamWithData from '@/models/commons/req_validator';
 import { IEvent } from '@/models/interface/IEvent';
 import { NextApiRequest, NextApiResponse } from 'next';
 import debug from '../../../../utils/debug_log';
 
 const log = debug('masa:api:events:[eventId]:index');
+
 
 export default async function handle(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   // eslint-disable-next-line no-console
@@ -21,22 +23,10 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
   if (supportMethod.indexOf(method!) === -1) {
     return res.status(400).end();
   }
-
   if (method === "GET") {
     // 검증 
-    const validateReq = validateParamWithData<IFindEventReq>(
-      {
-        params: req.query as any,
-      },
-      JSCFindEvent,
-    );
-    if (validateReq.result === false) {
-      return res.status(400).json({
-        text: validateReq.errorMessage,
-      });
-    }
-    log(`validateReq.result: ${validateReq.result}`);
-
+    const validateReq: any = eventValidate(req, res, method);
+    
     // 데이터 조작 (Read)
     const returnValue = await eventService.getEvent(validateReq.data.params.eventId);
     // 문서가 존재하지않는가?
@@ -64,23 +54,13 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
       return res.status(400).end();
     }
 
-    const validateReq = validateParamWithData<IUpdateEventReq>(
-      {
-        params: req.query as any,
-        body: req.body,
-      },
-      JSCUpdateEvent,
-    );
-    log(req.body);
-    if (validateReq.result === false) {
-      return res.status(400).json({
-        text: validateReq.errorMessage,
-      });
-    }
+    // 검증
+    const validateReq: any = eventValidate(req, res, method);
+    
     const eventData = await eventService.getEvent(validateReq.data.params.eventId);
     // 문서가 존재하지않는가?
     if (!eventData) {
-      res.status(404).end();
+      res.status(404).end("document not found");
       return;
     }
     
@@ -96,3 +76,38 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
     res.json(updateData);
   }
 };
+
+
+export const eventValidate = (req: NextApiRequest, res: NextApiResponse, method: string) => {
+  const supportMethod = ['PUT', 'GET'];
+  if (supportMethod.indexOf(method!) === -1) {
+    return res.status(400).end();
+  }
+  let validateReq: ValidateResult;
+  if (method === "GET") {
+    validateReq = validateParamWithData<IFindEventReq>(
+      {
+        params: req.query as any,
+      },
+      JSCFindEvent,
+    );
+  } else { // PUT인 경우
+    // TODO: 타입 때문에 else 사용했지만 PUT으로 제대로 체크 되게 수정 필요 
+    //if (method === "PUT") { 
+    validateReq = validateParamWithData<IUpdateEventReq>(
+      {
+        params: req.query as any,
+        body: req.body,
+      },
+      JSCUpdateEvent,
+    );
+  } 
+  log(`validateReq.result: ${validateReq.result}`);
+  if (validateReq.result === false) {
+    return res.status(400).json({
+      text: validateReq.errorMessage,
+    });
+  }
+
+  return validateReq;
+}
