@@ -42,18 +42,9 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
 
   // PUT 메서드 처리
   if (method === 'PUT') {
-    const token = req.headers.authorization;
-    if (token === undefined) {
-      return res.status(400).end();
-    }
-    let userId = '';
-    try {
-      const decodedIdToken = await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
-      userId = decodedIdToken.uid;
-    } catch (err) {
-      return res.status(400).end();
-    }
-
+    // Authorization 체크 
+    const userId = await chkAuthorization(req, res);
+    
     // 검증
     const validateReq: any = eventValidate(req, res, method);
     
@@ -110,4 +101,20 @@ export const eventValidate = (req: NextApiRequest, res: NextApiResponse, method:
   }
 
   return validateReq;
+}
+
+
+export const chkAuthorization = async (req: NextApiRequest, res: NextApiResponse) => {
+  const token = req.headers.authorization;
+  if (token === undefined) {
+    return res.status(400).end();
+  }
+  let userId = '';
+  try {
+    const decodedIdToken = await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
+    userId = decodedIdToken.uid;
+  } catch (err) {
+    return res.status(400).end();
+  }
+  return userId;
 }
