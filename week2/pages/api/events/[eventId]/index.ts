@@ -19,77 +19,61 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
   if (supportMethod.indexOf(method!) === -1) {
     return res.status(400).end();
   }
-  if (method === 'GET') {
-    // 검증
-    const validateReq = validateParamWithData<IFindEventReq>(
-      {
-        params: req.query as any,
-      },
-      JSCFindEvent,
-    );
-    if (validateReq.result === false) {
-      return res.status(400).json({
-        text: validateReq.errorMessage,
-      });
-    }
-    log(`validateReq.result: ${validateReq.result}`);
 
-    // 데이터 조작(READ)
-    const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(validateReq.data.params.eventId);
-    const doc = await ref.get();
-    // 문서가 존재하지않는가?
-    if (doc.exists === false) {
-      res.status(404).end('문서가 없어요');
-      return;
-    }
-    const returnValue = {
-      ...doc.data(),
-      id: validateReq.data.params.eventId,
-    };
-    res.json(returnValue);
-  }
+  let userId;
+  let paramArg = {
+    params: req.query as any,
+  };
+  let schemaArg = JSCFindEvent;
+  type interfaceType<T> = T extends undefined ? IFindEventReq : IUpdateEventReq;
 
-  // PUT 메서드 처리
+  // PUT인 경우 토큰 확인과 파라미터 변경
   if (method === 'PUT') {
-    // 코드 복사 후 IUpdateEventReq, JSCUpdateEvent 2가지는 import 시켜야합니다.
     const token = req.headers.authorization;
     if (token === undefined) {
       return res.status(400).end('token?');
     }
-    let userId = '';
     try {
       const decodedIdToken = await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
       userId = decodedIdToken.uid;
     } catch (err) {
       return res.status(400).end('이상한 토큰');
     }
-
-    const validateReq = validateParamWithData<IUpdateEventReq>(
-      {
-        params: req.query as any,
-        body: req.body,
-      },
-      JSCUpdateEvent,
-    );
+    // 파라미터
+    paramArg = Object.assign(paramArg, { body: req.body });
+    schemaArg = JSCUpdateEvent;
     log(req.body);
-    if (validateReq.result === false) {
-      return res.status(400).json({
-        text: validateReq.errorMessage,
-      });
-    }
-    const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(validateReq.data.params.eventId);
-    const doc = await ref.get();
-    // 문서가 존재하지않는가?
-    if (doc.exists === false) {
-      res.status(404).end();
-    }
+  }
+
+  const validateReq = validateParamWithData<interfaceType<typeof userId>>(paramArg, schemaArg);
+  if (validateReq.result === false) {
+    return res.status(400).json({
+      text: validateReq.errorMessage,
+    });
+  }
+  log(`validateReq.result: ${validateReq.result}`);
+
+  // 데이터 조작 (READ)
+  const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(validateReq.data.params.eventId);
+  const doc = await ref.get();
+  if (doc.exists === false) {
+    res.status(404).end('문서가 없어요');
+    return;
+  }
+
+  if (method === 'GET') {
+    const returnValue = {
+      ...doc.data(),
+      id: validateReq.data.params.eventId,
+    };
+    res.json(returnValue);
+  } else if (method === 'PUT') {
     const eventInfo = doc.data() as IEvent; // doc.data() 결과를 IEvent 인터페이스로 캐스팅
     if (eventInfo.ownerId !== userId) {
       return res.status(401).json({
         text: '이벤트 수정 권한이 없습니다',
       });
     }
-
     // eventInfo.closed = validateReq.data.body.closed ?? false;
     // 업데이트할 값
     const updateData = {
