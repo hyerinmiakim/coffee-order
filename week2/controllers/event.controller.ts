@@ -4,7 +4,7 @@ import { Events } from '@/models/events.model';
 import { HttpStatusCode } from '@/utils/http';
 import { HttpError } from '@/utils/error';
 import debug from '@/utils/debug_log';
-import { ControllerMethodParam } from './commons/controller_method';
+import { ControllerMethodParam } from './interface/ControllerMethod';
 import { IFindEventReq } from './event/interface/IFindEventReq';
 import { IUpdateEventReq } from './event/interface/IUpdateEventReq';
 import { JSCFindEvent } from './event/jsc/JSCFindEvent';

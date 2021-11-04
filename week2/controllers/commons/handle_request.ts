@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { HttpMethod, HttpStatusCode } from '@/utils/http';
 import { HttpError } from '@/utils/error';
 import debug from '@/utils/debug_log';
-import { ControllerMethod } from './controller_method';
+import { ControllerMethod } from '../interface/ControllerMethod';
 
 const log = debug('masa:controllers:common:foo');
 
