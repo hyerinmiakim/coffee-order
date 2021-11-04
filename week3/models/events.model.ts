@@ -139,12 +139,15 @@ class EventType {
         throw new Error('not exist event');
       }
       const docData = doc.data() as IEvent;
+      // 이벤트가 closed 되었는지 확인한다.
       if (docData.closed !== undefined && docData.closed === true) {
         throw new Error('closed event');
       }
+      // 마지막 주문시간이 존재하는지?
       if (docData.lastOrder !== undefined) {
         const now = new Date();
         const closedDate = new Date(docData.lastOrder);
+        // 주문이 들어온 시간이 주문마감 시간보다 미래의 시간인가?
         if (now.getTime() >= closedDate.getTime()) {
           throw new Error('closed event');
         }
