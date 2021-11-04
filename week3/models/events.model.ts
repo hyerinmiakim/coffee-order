@@ -139,12 +139,15 @@ class EventType {
         throw new Error('not exist event');
       }
       const docData = doc.data() as IEvent;
+      //이벤트가 closed 되었는지 확인한다.
       if (docData.closed !== undefined && docData.closed === true) {
         throw new Error('closed event');
       }
+      //마지막 주문시간이 존재하는지?
       if (docData.lastOrder !== undefined) {
         const now = new Date();
         const closedDate = new Date(docData.lastOrder);
+        //주문이 들어온 시간이 주문마감 시간보다 미래의 시간인가?
         if (now.getTime() >= closedDate.getTime()) {
           throw new Error('closed event');
         }
@@ -165,7 +168,7 @@ class EventType {
     const updateArr = this.orders.get(args.eventId);
     // 기존에 데이터가 없다면?
     if (updateArr === undefined) {
-      this.orders.set(args.eventId, [returnData]);
+      this.orders.set(args.eventId, [returnData]); //in-memory에서 MAP으로 가져온 후 확인
       return returnData;
     }
     const findIdx = updateArr.findIndex((fv) => fv.guestId === args.order.guestId);
@@ -175,7 +178,7 @@ class EventType {
     } else {
       updateArr.push(returnData);
     }
-    this.orders.set(args.eventId, updateArr);
+    this.orders.set(args.eventId, updateArr); //api에 있는 endpoint가 람다 펑션으로 나눠져서 람다들이 파이어베이스와 연결 --> Order를 다 가지고 있어서 처리가능
     return returnData;
   }
 
