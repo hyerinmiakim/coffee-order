@@ -6,8 +6,10 @@ import { HttpError } from '@/utils/error';
 import debug from '@/utils/debug_log';
 import { ControllerMethodParam } from './interface/ControllerMethod';
 import { IFindEventReq } from './event/interface/IFindEventReq';
+import { IAddEventReq } from './event/interface/IAddEventReq';
 import { IUpdateEventReq } from './event/interface/IUpdateEventReq';
 import { JSCFindEvent } from './event/jsc/JSCFindEvent';
+import { JSCAddEvent } from './event/jsc/JSCAddEvent';
 import { JSCUpdateEvent } from './event/jsc/JSCUpdateEvent';
 
 const log = debug('masa:controller:events');
@@ -29,6 +31,35 @@ async function find({ res, ...req }: ControllerMethodParam): Promise<void> {
 
   // 가져온 이벤트를 응답
   return res.json(eventWithId);
+}
+
+async function add({ res, ...req }: ControllerMethodParam): Promise<void> {
+  // 요청 헤더를 통해 인증 여부를 확인
+  const reqAuthentication = await authenticate(req.headers);
+  if (reqAuthentication.result === false) {
+    throw new HttpError(HttpStatusCode.BadRequest, reqAuthentication.errorMessage);
+  }
+  const { uid: userId } = reqAuthentication.data;
+  log(`userId: ${userId}`);
+
+  // 요청 데이터를 검증하고 변환
+  const reqValidation = validateParamWithData<IAddEventReq>({ body: req.body }, JSCAddEvent);
+  if (reqValidation.result === false) {
+    throw new HttpError(HttpStatusCode.BadRequest, reqValidation.errorMessage);
+  }
+  const {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    body: { closed: _, ...body },
+  } = reqValidation.data;
+
+  // DB에 이벤트를 추가하기
+  const addedEventWithId = await Events.add({
+    desc: '',
+    ...body,
+  });
+
+  // 추가된 이벤트를 응답
+  return res.json(addedEventWithId);
 }
 
 async function update({ res, ...req }: ControllerMethodParam): Promise<void> {
@@ -75,4 +106,4 @@ async function update({ res, ...req }: ControllerMethodParam): Promise<void> {
   return res.json(updatedEventWithId);
 }
 
-export { find, update };
+export { find, add, update };
