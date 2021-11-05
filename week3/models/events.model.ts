@@ -134,7 +134,7 @@ class EventType {
     const oldDoc = orderCollection.doc(args.order.guestId);
 
     await FirebaseAdmin.getInstance().Firestore.runTransaction(async (transaction) => {
-      const doc = await transaction.get(eventDoc);
+      const doc: any = await transaction.get(eventDoc);
       if (doc.exists === false) {
         throw new Error('not exist event');
       }

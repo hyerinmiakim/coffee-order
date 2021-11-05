@@ -6,9 +6,11 @@ import validateParamWithData from '../../models/commons/req_validator';
 import { IAddEventReq } from './interface/IAddEventReq';
 import { IFindEventReq } from './interface/IFindEventReq';
 import { IUpdateEventReq } from './interface/IUpdateEventReq';
+import { IRemoveOrderReq } from "./interface/IRemoveOrderReq";
 import { JSCAddEvent } from './jsc/JSCAddEvent';
 import { JSCFindEvent } from './jsc/JSCFindEvent';
 import { JSCUpdateEvent } from './jsc/JSCUpdateEvent';
+import { JSCRemoveOrder } from "./jsc/JSCRemoveOrder";
 import { Events } from '../../models/events.model';
 import FirebaseAdmin from '../../models/commons/firebase_admin.model';
 import { IAddOrderReq } from './interface/IAddOrderReq';
@@ -185,6 +187,40 @@ export default class EventController {
         order: validateReq.data.body.order,
       });
       return res.json(result);
+    } catch (err) {
+      return res.status(500).send((err as any).toString());
+    }
+  }
+
+  static async deleteOrder(req: Request, res: Response) {
+    const token = req.headers.authorization;
+    if (token === undefined) {
+      return res.status(400).end();
+    }
+    try {
+      await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
+    } catch (err) {
+      log("verifyIdToken " + err.toString());
+      return res.status(400).end("토큰 에러");
+    }
+    const validateReq = validateParamWithData<IRemoveOrderReq>(
+      {
+        params: req.query
+      },
+      JSCRemoveOrder,
+    );
+    if (validateReq.result === false) {
+      return res.status(400).send({
+        text: validateReq.errorMessage,
+      });
+    }
+    try {
+      await Events.removeOrder({
+        eventId: validateReq.data.params.eventId,
+        guestId: validateReq.data.params.guestId
+      })
+
+      return res.json({});
     } catch (err) {
       return res.status(500).send((err as any).toString());
     }
