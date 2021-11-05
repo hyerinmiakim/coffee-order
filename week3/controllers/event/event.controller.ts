@@ -22,12 +22,12 @@ export default class EventController {
   static async addEvent(req: Request, res: Response) {
     const token = req.headers.authorization;
     if (token === undefined) {
-      return res.status(400).end();
+      return res.status(401).end("Unauthorized");
     }
     try {
       await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
     } catch (err) {
-      return res.status(400).end();
+      return res.status(401).end("Unauthorized");
     }
     log(req.body);
     const validateReq = validateParamWithData<IAddEventReq>(
@@ -49,7 +49,7 @@ export default class EventController {
         desc: validateReq.data.body.desc !== undefined ? validateReq.data.body.desc : '',
       };
       const result = await Events.add(reqParams);
-      return res.status(200).json(result);
+      return res.status(201).json(result);
     } catch (err) {
       return res.status(500);
     }
@@ -58,14 +58,14 @@ export default class EventController {
   static async updateEvent(req: Request, res: Response) {
     const token = req.headers.authorization;
     if (token === undefined) {
-      return res.status(400).end();
+      return res.status(401).end("Unauthorized");
     }
     let userId = '';
     try {
       const decodedIdToken = await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
       userId = decodedIdToken.uid;
     } catch (err) {
-      return res.status(400).end();
+      return res.status(401).end("Unauthorized");
     }
     const validateReq = validateParamWithData<IUpdateEventReq>(
       {
@@ -88,7 +88,7 @@ export default class EventController {
       });
       log({ ownerId: eventInfo.ownerId, userId });
       if (eventInfo.ownerId !== userId) {
-        return res.status(401).json({
+        return res.status(403).json({
           text: '이벤트 수정 권한이 없습니다',
         });
       }
@@ -162,12 +162,12 @@ export default class EventController {
   static async addOrder(req: Request, res: Response) {
     const token = req.headers.authorization;
     if (token === undefined) {
-      return res.status(400).end();
+      return res.status(401).end("Unauthorized");
     }
     try {
       await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
     } catch (err) {
-      return res.status(400).end();
+      return res.status(401).end("Unauthorized");
     }
     const validateReq = validateParamWithData<IAddOrderReq>(
       {
@@ -195,13 +195,13 @@ export default class EventController {
   static async deleteOrder(req: Request, res: Response) {
     const token = req.headers.authorization;
     if (token === undefined) {
-      return res.status(400).end();
+      return res.status(401).end("Unauthorized");
     }
     try {
       await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
     } catch (err) {
       log("verifyIdToken " + err.toString());
-      return res.status(400).end("토큰 에러");
+      return res.status(401).end("Unauthorized");
     }
     const validateReq = validateParamWithData<IRemoveOrderReq>(
       {

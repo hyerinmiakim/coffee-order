@@ -13,6 +13,6 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
     await EventController.addEvent(req, res);
   }
   if (method !== 'POST') {
-    res.status(404).send('돌아가');
+    res.status(405).send('Method Not Allowed');
   }
 }

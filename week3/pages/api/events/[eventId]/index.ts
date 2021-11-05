@@ -11,7 +11,7 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
   log(method);
   const supportMethod = ['PUT', 'GET'];
   if (supportMethod.indexOf(method!) === -1) {
-    return res.status(400).end();
+    res.status(405).send('Method Not Allowed');
   }
   if (method === 'GET') {
     await eventController.findEvent(req, res);

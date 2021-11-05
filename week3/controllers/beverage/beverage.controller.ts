@@ -9,12 +9,12 @@ export default class BeverageController {
   static async addBeverage(req: Request, res: Response) {
     const token = req.headers.authorization;
     if (token === undefined) {
-      return res.status(400).end();
+      return res.status(401).end("Unauthorized");
     }
     try {
       await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
     } catch (err) {
-      return res.status(400).end();
+      return res.status(401).end("Unauthorized");
     }
     const validateReq = validateParamWithData<IAddBeverageReq>(
       {
@@ -29,7 +29,7 @@ export default class BeverageController {
     }
     try {
       const result = await Beverages.add({ ...validateReq.data.body });
-      return res.json(result);
+      return res.status(201).json(result);
     } catch (err) {
       return res.status(500).send((err as any).toString());
     }
