@@ -10,12 +10,15 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
   const { method } = req;
   log(method);
 
-  const supportMethod = ['DELETE'];
+  const supportMethod = ['DELETE', 'OPTIONS'];
   if (supportMethod.indexOf(method!) === -1) {
     // 클라이언트의 요청이 허용되지 않는 메소드인 경우
     res.status(405).send('Method Not Allowed');
   }
   if (method === 'DELETE') {
     await eventController.deleteOrder(req, res);
+  }
+  if (method === 'OPTIONS') {
+    res.status(200).send('DELETE,OPTIONS');
   }
 }
