@@ -206,8 +206,7 @@ export default class EventController {
 
     const validateReq = validateParamWithData<IRemoveOrderReq>(
       {
-        params: req.query,
-        body: req.body,
+        params: req.query
       },
       JSCRemoveOrder,
     );
