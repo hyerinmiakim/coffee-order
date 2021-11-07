@@ -190,6 +190,11 @@ class EventType {
       if (doc.exists === false) {
         throw new Error('not exist event');
       }
+      const docData = doc.data() as IEvent;
+      // 이벤트가 closed 되었는지 확인한다.
+      if (docData.closed !== undefined && docData.closed === true) {
+        throw new Error('closed event');
+      }
     });
     if (this.orders.has(args.eventId) === false) {
       await this.findOrders({ eventId: args.eventId });
