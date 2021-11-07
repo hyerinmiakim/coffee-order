@@ -49,7 +49,8 @@ const EventCreatePage: NextPage = () => {
       addEventData.lastOrder = new Date(`${closedDate} ${closedTime}`);
     }
     const resp = await EventClientModel.addEvent(addEventData);
-    if (resp.status === 200 && resp.payload !== undefined) {
+    // 주문서 생성시 status code 정확한 구분을 위해 변경 
+    if (resp.status === 201 && resp.payload !== undefined) {
       showToast('주문서가 만들어졌습니다. 1초 후 이동합니다.');
       setTimeout(() => {
         window.location.href = `/events/${resp.payload?.id}`;
