@@ -31,7 +31,7 @@ export default class BeverageController {
       const result = await Beverages.add({ ...validateReq.data.body });
       return res.json(result);
     } catch (err) {
-      return res.status(500).send(err.toString());
+      return res.status(500).send((err as any).toString());
     }
   }
 
@@ -40,7 +40,7 @@ export default class BeverageController {
       const result = await Beverages.findAll();
       return res.json(result);
     } catch (err) {
-      return res.status(500).send(err.toString());
+      return res.status(500).send((err as any).toString());
     }
   }
 }

@@ -11,6 +11,10 @@ import { JSCFindEvent } from './jsc/JSCFindEvent';
 import { JSCUpdateEvent } from './jsc/JSCUpdateEvent';
 import { Events } from '../../models/events.model';
 import FirebaseAdmin from '../../models/commons/firebase_admin.model';
+import { IAddOrderReq } from './interface/IAddOrderReq';
+import { JSCAddOrder } from './jsc/JSCAddOrder';
+import { IRemoveOrderReq } from './interface/IRemoveOrderReq';
+import { JSCRemoveOrder } from './jsc/JSCRemoveOrder';
 
 const log = debug('massa:controller:event');
 
@@ -48,6 +52,44 @@ export default class EventController {
       return res.status(200).json(result);
     } catch (err) {
       return res.status(500);
+    }
+  }
+
+  static async deleteEvent(req: Request, res: Response) {
+    const token = req.headers.authorization;
+    if (token === undefined) {
+      return res.status(400).end('토큰이 없습니다.');
+    }
+    let userId = '';
+    try {
+      const decodedIdToken = await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
+      userId = decodedIdToken.uid;
+    } catch (err) {
+      return res.status(400).end('이상한 토큰');
+    }
+
+    const validateReq = validateParamWithData<IRemoveOrderReq>(
+      {
+        params: req.query,
+      },
+      JSCRemoveOrder,
+    );
+    log(req.body);
+    if (validateReq.result === false) {
+      return res.status(400).json({
+        text: validateReq.errorMessage,
+      });
+    }
+
+    try {
+      const reqParams = {
+        eventId: validateReq.data.params.eventId,
+        guestId: validateReq.data.params.guestId,
+      };
+      const result = await Events.removeOrder(reqParams);
+      return res.status(200).json(result);
+    } catch (err) {
+      return res.status(500).end((err as any).toString());
     }
   }
 
@@ -128,6 +170,62 @@ export default class EventController {
       res.json(result);
     } catch (err) {
       return res.status(404).end();
+    }
+  }
+
+  static async findOrders(req: Request, res: Response) {
+    const validateReq = validateParamWithData<IFindEventReq>(
+      {
+        params: req.query,
+      },
+      JSCFindEvent,
+    );
+    if (validateReq.result === false) {
+      return res.status(400).json({
+        text: validateReq.errorMessage,
+      });
+    }
+    try {
+      // event 문서 존재하는지 확인
+      await Events.find({ eventId: validateReq.data.params.eventId });
+      // 이벤트 안에 전체 주문을 조회한다.
+      const result = await Events.findOrders({ eventId: validateReq.data.params.eventId });
+      return res.json(result);
+    } catch (err) {
+      return res.status(500).send((err as any).toString());
+    }
+  }
+
+  static async addOrder(req: Request, res: Response) {
+    const token = req.headers.authorization;
+    if (token === undefined) {
+      return res.status(400).end();
+    }
+    try {
+      await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
+    } catch (err) {
+      return res.status(400).end();
+    }
+    const validateReq = validateParamWithData<IAddOrderReq>(
+      {
+        params: req.query,
+        body: req.body,
+      },
+      JSCAddOrder,
+    );
+    if (validateReq.result === false) {
+      return res.status(400).send({
+        text: validateReq.errorMessage,
+      });
+    }
+    try {
+      const result = await Events.addOrder({
+        eventId: validateReq.data.params.eventId,
+        order: validateReq.data.body.order,
+      });
+      return res.json(result);
+    } catch (err) {
+      return res.status(500).send((err as any).toString());
     }
   }
 }

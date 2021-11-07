@@ -93,7 +93,7 @@ class EventType {
         ...findResult,
         ...args,
       };
-      const eventSnap = this.EventDoc(args.id);
+      const eventSnap = this.EventDoc(args.id); // 문서 특정 메서드
       await eventSnap.update(updateData);
       const updateFindResult = await this.find({ eventId: args.id });
       return updateFindResult;
