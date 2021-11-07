@@ -13,6 +13,8 @@ import { Events } from '../../models/events.model';
 import FirebaseAdmin from '../../models/commons/firebase_admin.model';
 import { IAddOrderReq } from './interface/IAddOrderReq';
 import { JSCAddOrder } from './jsc/JSCAddOrder';
+import { IRemoveOrderReq } from './interface/IRemoveOrderReq';
+import { JSCRemoveOrder } from './jsc/JSCRemoveOrder';
 
 const log = debug('massa:controller:event');
 
@@ -183,6 +185,38 @@ export default class EventController {
       const result = await Events.addOrder({
         eventId: validateReq.data.params.eventId,
         order: validateReq.data.body.order,
+      });
+      return res.json(result);
+    } catch (err) {
+      return res.status(500).send((err as any).toString());
+    }
+  }
+
+  static async deleteOrder(req: Request, res: Response) {
+    const token = req.headers.authorization;
+    if (token === undefined) {
+      return res.status(400).end();
+    }
+    try {
+      await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
+    } catch (err) {
+      return res.status(400).end();
+    }
+    const validateReq = validateParamWithData<IRemoveOrderReq>(
+      {
+        params: req.query,
+      },
+      JSCRemoveOrder,
+    );
+    if (validateReq.result === false) {
+      return res.status(400).send({
+        text: validateReq.errorMessage,
+      });
+    }
+    try {
+      const result = await Events.removeOrder({
+        eventId: validateReq.data.params.eventId,
+        guestId: validateReq.data.params.guestId,
       });
       return res.json(result);
     } catch (err) {
