@@ -157,6 +157,8 @@ class EventType {
         id: args.order.guestId,
       });
     });
+
+
     const returnData = {
       ...args.order,
       id: args.order.guestId,
@@ -185,6 +187,9 @@ class EventType {
   /** 주문 제거 */
   async removeOrder(args: { eventId: string; guestId: string }) {
     // 주문 마감 여부는 이미 체크했다는 전제
+    /*
+       인메모리 상에서 데이터를 가져오고, 있다면 다음 스텝으로 넘어간다.
+    */
     if (this.orders.has(args.eventId) === false) {
       await this.findOrders({ eventId: args.eventId });
     }
@@ -194,11 +199,12 @@ class EventType {
       return;
     }
     const findIdx = updateArr.findIndex((fv) => fv.guestId === args.guestId);
-    // 주문이 있을 때만!
-    if (findIdx >= 0) {
+    //데이터가 있는 경우에 한하여, transaction 처리를 진행해도 될 것 같아 다음 스텝으로 처리
+    
+    if(findIdx >= 0){
       await this.OrdersCollection(args.eventId).doc(args.guestId).delete();
       await this.updateCache({ eventId: args.eventId });
-    }
+    } 
   }
 }
 
