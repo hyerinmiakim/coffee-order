@@ -193,7 +193,6 @@ export default class EventController {
   }
 
   static async removeOrder(req:Request, res:Response){
-    //TODO: Events.removeOrder를 transaction 처리해서 문서가 있는지 확인하고 삭제해보기
     const token = req.headers.authorization;
     if (token === undefined) {
       return res.status(400).end();

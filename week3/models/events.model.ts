@@ -187,24 +187,51 @@ class EventType {
   /** 주문 제거 */
   async removeOrder(args: { eventId: string; guestId: string }) {
     // 주문 마감 여부는 이미 체크했다는 전제
-    /*
-       인메모리 상에서 데이터를 가져오고, 있다면 다음 스텝으로 넘어간다.
-    */
+    const eventDoc = this.EventDoc(args.eventId);
+    const orderCollection = this.OrdersCollection(args.eventId);
+    const oldDoc = orderCollection.doc(args.guestId);
+    
+    await FirebaseAdmin.getInstance().Firestore.runTransaction(async (transaction) => {
+      const eDoc = await transaction.get(eventDoc);
+      if(eDoc.exists === false){
+        throw new Error('not exist event');
+      }
+
+      const orders =  await transaction.get(oldDoc)
+      if(orders.exists === false){
+        throw new Error('not exist orders');
+      }
+
+      const order = orders.data() as IEventOrder
+      log(order)
+
+      if(order.guestId !== args.guestId){
+        //처리할 문서가 있는경우
+        throw new Error('not matching guestId');
+      }
+      
+      await transaction.delete(oldDoc)
+      await this.updateCache({ eventId: args.eventId });
+    });
+
+/*
     if (this.orders.has(args.eventId) === false) {
       await this.findOrders({ eventId: args.eventId });
     }
     const updateArr = this.orders.get(args.eventId);
     // 기존에 데이터가 없다면?
+
     if (updateArr === undefined) {
       return;
     }
     const findIdx = updateArr.findIndex((fv) => fv.guestId === args.guestId);
-    //데이터가 있는 경우에 한하여, transaction 처리를 진행해도 될 것 같아 다음 스텝으로 처리
+    //TODO: Events.removeOrder를 transaction 처리해서 문서가 있는지 확인하고 삭제해보기
     
     if(findIdx >= 0){
       await this.OrdersCollection(args.eventId).doc(args.guestId).delete();
       await this.updateCache({ eventId: args.eventId });
-    } 
+    }
+    */ 
   }
 }
 
