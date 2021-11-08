@@ -1,11 +1,13 @@
+/* eslint-disable prettier/prettier */
 import { NextApiRequest as Request, NextApiResponse as Response } from 'next';
-
+import { JSONSchema6 } from 'json-schema';
 import debug from '../../utils/debug_log';
 import validateParamWithData from '../../models/commons/req_validator';
 
 import { IAddEventReq } from './interface/IAddEventReq';
 import { IFindEventReq } from './interface/IFindEventReq';
 import { IUpdateEventReq } from './interface/IUpdateEventReq';
+import { IRemoveOrderReq } from './interface/IRemoveOrderReq';
 import { JSCAddEvent } from './jsc/JSCAddEvent';
 import { JSCFindEvent } from './jsc/JSCFindEvent';
 import { JSCUpdateEvent } from './jsc/JSCUpdateEvent';
@@ -13,19 +15,36 @@ import { Events } from '../../models/events.model';
 import FirebaseAdmin from '../../models/commons/firebase_admin.model';
 import { IAddOrderReq } from './interface/IAddOrderReq';
 import { JSCAddOrder } from './jsc/JSCAddOrder';
+import { JSCRemoveOrder } from './jsc/JSCRemoveOrder';
 
 const log = debug('massa:controller:event');
 
+interface IVerifyTokenAndReturnId {
+  ok: boolean;
+  htmlStatus?: number;
+  userId?: string;
+  error?: string;
+}
+
 export default class EventController {
-  static async addEvent(req: Request, res: Response) {
-    const token = req.headers.authorization;
+  static async verifyTokenAndReturnId(token: string | undefined): Promise<IVerifyTokenAndReturnId> {
     if (token === undefined) {
-      return res.status(400).end();
+      return { ok: false, htmlStatus: 401, error: '해당 기능은 로그인 후에 사용하실 수 있습니다..' };
     }
     try {
-      await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
-    } catch (err) {
-      return res.status(400).end();
+      const decodedIdToken = await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
+      return { ok: true, userId: decodedIdToken.uid };
+    } catch (error) {
+      return { ok: false, error: '토큰의 검증을 실패했습니다.' };
+    }
+  }
+
+  static async addEvent(req: Request, res: Response) {
+    // 토큰을 검증하는 과정을 verifyTokenAndReturnId 메소드에 작성했습니다.
+    const token = req.headers.authorization;
+    const decodedIdToken = await this.verifyTokenAndReturnId(token);
+    if (!decodedIdToken.ok) {
+      return res.status(401).json({ text: decodedIdToken.error });
     }
     log(req.body);
     const validateReq = validateParamWithData<IAddEventReq>(
@@ -54,17 +73,14 @@ export default class EventController {
   }
 
   static async updateEvent(req: Request, res: Response) {
+    // 토큰을 검증하는 과정을 verifyTokenAndReturnId 메소드에 작성했습니다.
     const token = req.headers.authorization;
-    if (token === undefined) {
-      return res.status(400).end();
+    const decodedIdToken = await this.verifyTokenAndReturnId(token);
+    if (!decodedIdToken.ok) {
+      return res.status(401).json({ text: decodedIdToken.error });
     }
-    let userId = '';
-    try {
-      const decodedIdToken = await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
-      userId = decodedIdToken.uid;
-    } catch (err) {
-      return res.status(400).end();
-    }
+    const userId = decodedIdToken?.userId;
+
     const validateReq = validateParamWithData<IUpdateEventReq>(
       {
         params: req.query,
@@ -158,15 +174,13 @@ export default class EventController {
   }
 
   static async addOrder(req: Request, res: Response) {
+    // 토큰을 검증하는 과정을 verifyTokenAndReturnId 메소드에 작성했습니다.
     const token = req.headers.authorization;
-    if (token === undefined) {
-      return res.status(400).end();
+    const decodedIdToken = await this.verifyTokenAndReturnId(token);
+    if (!decodedIdToken.ok) {
+      return res.status(401).json({ text: decodedIdToken.error });
     }
-    try {
-      await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
-    } catch (err) {
-      return res.status(400).end();
-    }
+
     const validateReq = validateParamWithData<IAddOrderReq>(
       {
         params: req.query,
@@ -187,6 +201,37 @@ export default class EventController {
       return res.json(result);
     } catch (err) {
       return res.status(500).send((err as any).toString());
+    }
+  }
+
+  /** 주문 삭제 시작 */
+  static async deleteOrder(req: Request, res: Response) {
+    try {
+      const { guestId, eventId } = (req.query as unknown) as { guestId: string; eventId: string };
+      // 토큰을 검증하는 과정을 verifyTokenAndReturnId 메소드에 작성했습니다.
+      const token = req.headers.authorization;
+      const decodedIdToken = await this.verifyTokenAndReturnId(token);
+      if (!decodedIdToken.ok) {
+        return res.status(400).json({ text: decodedIdToken.error });
+      }
+      const userId = decodedIdToken?.userId;
+      // 로그인한 유저가 주문을 생성한 사람일 때만 삭제할 수 있습니다.
+      if (guestId !== `${userId}`) {
+        return res.status(403).json({ text: '주문을 작성한 유저만 삭제하실 수 있습니다.' });
+      }
+
+      const validateReq = validateParamWithData<IRemoveOrderReq>({ params: req.query }, JSCRemoveOrder);
+      if (validateReq.result === false) {
+        return res.status(400).send({
+          text: validateReq.errorMessage,
+        });
+      }
+
+      await Events.removeOrder({ eventId, guestId });
+
+      return res.json({ text: '삭제에 성공했습니다.' });
+    } catch (error) {
+      res.status(500).json({ text: '에러가 발생했습니다.' });
     }
   }
 }
