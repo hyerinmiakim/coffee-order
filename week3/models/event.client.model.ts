@@ -10,6 +10,22 @@ const log = debug('masa:model:Event_client');
 type OrderWithDocID = IEventOrder & { docId: string };
 
 export default class EventClientModel {
+  static async findAllEvent({host = ''}: {host?: string}) {
+    try {
+      const resp = await requester<IEvent[]>({
+        option: {
+          url: `${host}/api/events`,
+          method: 'get',
+        }
+      })
+      return resp;
+    } catch (err) {
+      return {
+        status: 500,
+      };
+    }
+  }
+
   static async findEvent({ eventId, host = '' }: { eventId: string; host?: string }) {
     console.log({ host });
     try {

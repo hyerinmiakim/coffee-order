@@ -45,6 +45,25 @@ class EventType {
     }
   }
 
+  async findAll(): Promise<IEvent[]> {
+    const eventListSnap = this.EventsStore.get();
+    
+
+    const allEvent: IEvent[] = [];
+    (await eventListSnap).forEach(doc => {
+      // 열려있는 이벤트만 가져오기 
+      if (!doc.data().closed) {
+        const eventDoc: IEvent = {
+          ...doc.data() as IEvent,
+          id: doc.id
+        }
+        allEvent.push(eventDoc);
+      }
+    });
+
+    return allEvent;
+  }
+
   /** 이벤트 생성 */
   async add(args: { title: string; desc: string; owner: InMemberInfo; lastOrder?: Date }): Promise<IEvent> {
     log(args);

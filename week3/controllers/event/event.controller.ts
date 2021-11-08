@@ -135,6 +135,17 @@ export default class EventController {
     }
   }
 
+  static async findAllEvent(req: Request, res: Response) {
+    
+    try {
+      const result = await Events.findAll();
+      
+      res.json(result);
+    } catch (err) {
+      return res.status(404).end();
+    }
+  }
+
   /** 이벤트 안에 주문 목록을 조회한다 */
   static async findOrders(req: Request, res: Response) {
     const validateReq = validateParamWithData<IFindEventReq>(

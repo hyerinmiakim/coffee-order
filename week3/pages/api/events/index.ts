@@ -9,10 +9,14 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
   // eslint-disable-next-line no-console
   const { method } = req;
   log(method);
+  const supportMethod = ['POST', 'GET'];
+  if (supportMethod.indexOf(method!) === -1) {
+    res.status(405).send('Method Not Allowed');
+  }
   if (method === 'POST') {
     await EventController.addEvent(req, res);
   }
-  if (method !== 'POST') {
-    res.status(405).send('Method Not Allowed');
+  if (method === 'GET') {
+    await EventController.findAllEvent(req, res);
   }
 }
