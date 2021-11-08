@@ -235,13 +235,13 @@ const EventPage: NextPage<Props> = ({ event: propsEvent, orders: propsOrders, be
             type="button"
             onClick={async () => {
               const resp = await BeverageClientModel.add({ title: searchText });
-              if (resp.status !== 200 || resp.payload === undefined) {
+              if (resp.status !== 201 || resp.payload === undefined) {
                 showToast('신규 음료 등록에 실패했습니다. 잠시 후 다시 시도하세요');
                 return;
               }
               openInputOptionDialog(resp.payload);
               const beverageListResp = await BeverageClientModel.findAll({ page: 1, limit: 99 });
-              if (beverageListResp.status === 200 && beverageListResp.payload !== undefined) {
+              if (beverageListResp.status === 201 && beverageListResp.payload !== undefined) {
                 updateBeverages(beverageListResp.payload);
               }
             }}
