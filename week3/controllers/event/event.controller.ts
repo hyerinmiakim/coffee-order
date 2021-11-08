@@ -12,7 +12,9 @@ import { JSCUpdateEvent } from './jsc/JSCUpdateEvent';
 import { Events } from '../../models/events.model';
 import FirebaseAdmin from '../../models/commons/firebase_admin.model';
 import { IAddOrderReq } from './interface/IAddOrderReq';
+import { IRemoveOrderReq } from './interface/IRemoveOrderReq';
 import { JSCAddOrder } from './jsc/JSCAddOrder';
+import { JSCRemoveOrder } from './jsc/JSCRemoveOrder';
 
 const log = debug('massa:controller:event');
 
@@ -187,6 +189,46 @@ export default class EventController {
       return res.json(result);
     } catch (err) {
       return res.status(500).send((err as any).toString());
+    }
+  }
+
+  static async deleteOrder(req: Request, res: Response) {
+    // 요청 데이터 검증
+    const validateReq = validateParamWithData<IRemoveOrderReq>(
+      {
+        params: req.query,
+      },
+      JSCRemoveOrder,
+    );
+    if (validateReq.result === false) {
+      return res.status(400).send({
+        text: validateReq.errorMessage,
+      });
+    }
+
+    // 인증 및 인가 검증
+    const token = req.headers.authorization;
+    if (token === undefined) {
+      return res.status(400).end();
+    }
+    try {
+      const decodedToken = await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
+      if (validateReq.data.params.guestId !== decodedToken.uid) {
+        return res.status(403).send('not your order');
+      }
+    } catch (err: any) {
+      return res.status(400).send(err.toString());
+    }
+
+    // 주문 제거 및 응답
+    try {
+      const result = await Events.removeOrder({
+        eventId: validateReq.data.params.eventId,
+        guestId: validateReq.data.params.guestId,
+      });
+      return res.json(result);
+    } catch (err: any) {
+      return res.status(500).send(err.toString());
     }
   }
 }

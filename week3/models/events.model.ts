@@ -184,21 +184,45 @@ class EventType {
 
   /** 주문 제거 */
   async removeOrder(args: { eventId: string; guestId: string }) {
-    // 주문 마감 여부는 이미 체크했다는 전제
+    const eventDocRef = this.EventDoc(args.eventId);
+    const orderCollectionRef = this.OrdersCollection(args.eventId);
+    const orderRef = orderCollectionRef.doc(args.guestId);
+    await FirebaseAdmin.getInstance().Firestore.runTransaction(async (transaction) => {
+      // 이벤트가 존재하는지 확인한다.
+      const eventDoc = await transaction.get(eventDocRef);
+      if (eventDoc.exists === false) {
+        throw new Error('not exist event');
+      }
+
+      // 이벤트가 마감되었는지 확인한다.
+      const eventDocData = eventDoc.data() as IEvent;
+      if (eventDocData.closed !== undefined && eventDocData.closed === true) {
+        throw new Error('closed event');
+      }
+
+      // 주문이 존재하는지 확인한다.
+      const orderDoc = await transaction.get(orderRef);
+      if (orderDoc.exists === false) {
+        throw new Error('not exist order');
+      }
+
+      // 주문을 삭제한다.
+      await transaction.delete(orderRef);
+    });
+
+    // 캐시 미적중 시, 캐싱하고 종료
     if (this.orders.has(args.eventId) === false) {
       await this.findOrders({ eventId: args.eventId });
-    }
-    const updateArr = this.orders.get(args.eventId);
-    // 기존에 데이터가 없다면?
-    if (updateArr === undefined) {
       return;
     }
-    const findIdx = updateArr.findIndex((fv) => fv.guestId === args.guestId);
-    // 주문이 있을 때만!
-    if (findIdx >= 0) {
-      await this.OrdersCollection(args.eventId).doc(args.guestId).delete();
-      await this.updateCache({ eventId: args.eventId });
+
+    // 캐시 적중 시, 캐시에서도 해당 주문 삭제
+    const orders = this.orders.get(args.eventId)!;
+    const orderIdx = orders.findIndex((o) => o.guestId === args.guestId);
+    if (orderIdx < 0) {
+      return;
     }
+    orders.splice(orderIdx, 1);
   }
 }
 
