@@ -282,7 +282,35 @@ const EventPage: NextPage<Props> = ({ event: propsEvent, orders: propsOrders, be
         )}
         <div className="mb-4">
           <p>전체 {orders.length} 잔</p>
-          {memoizedMyOrder.myOrder && <p>내 주문: {memoizedMyOrder.myBeverage?.title}</p>}
+          {memoizedMyOrder.myOrder && (
+            <>
+              <p>내 주문: {memoizedMyOrder.myBeverage?.title}</p>
+              <button
+                type="button"
+                className="border-2 border-red-500 text-red-500 rounded-md p-2 mb-4"
+                onClick={async () => {
+                  const resp = await EventClientModel.deleteOrder({ eventId: event.id, guestId: authUser!.uid });
+                  if (resp.status !== 200) {
+                    openConfirmModal({
+                      message: '주문 취소에 문제가 발생했습니다.',
+                      hideCancel: true,
+                    });
+                    return;
+                  }
+                  const newOrderList = await EventClientModel.orders({ eventId: event.id });
+                  if (newOrderList.status === 200 && newOrderList.payload !== undefined) {
+                    updateOrders(newOrderList.payload);
+                  }
+                  openConfirmModal({
+                    message: '주문 취소 완료',
+                    hideCancel: true,
+                  });
+                }}
+              >
+                주문 취소
+              </button>
+            </>
+          )}
         </div>
         <div className="relative">
           <div className="relative z-0 w-full mb-1">
