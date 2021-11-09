@@ -202,6 +202,7 @@ class EventType {
       if (transactedOrderDoc.exists === false) {
         throw new Error('order doc does not exist');
       }
+
       if (this.orders.has(args.eventId) === false) {
         await this.findOrders({ eventId: args.eventId });
       }
