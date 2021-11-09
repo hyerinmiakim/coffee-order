@@ -10,6 +10,9 @@
     "type-check": "tsc",
     "start": "next start"
   },
+  "engines": {
+    "node": ">=12.22.0"
+  },
   "author": "totuworld",
   "license": "ISC",
   "dependencies": {

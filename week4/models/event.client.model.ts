@@ -76,7 +76,7 @@ export default class EventClientModel {
     try {
       const resp = await requester<OrderWithDocID[]>({
         option: {
-          url: `${host}/api/events/${eventId}/orders`,
+          url: `${host}/api/events/${eventId}/orders.list`,
           method: 'get',
         },
       });

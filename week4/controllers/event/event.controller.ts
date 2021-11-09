@@ -137,11 +137,8 @@ export default class EventController {
 
   static async addOrder(req: Request, res: Response) {
     const token = req.headers.authorization;
-    if (token === undefined) {
-      return res.status(400).end();
-    }
     try {
-      await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
+      await FirebaseAdmin.getInstance().Auth.verifyIdToken(token!);
     } catch (err) {
       return res.status(400).end();
     }
@@ -176,11 +173,8 @@ export default class EventController {
 
   static async deleteOrder(req: Request, res: Response) {
     const token = req.headers.authorization;
-    if (token === undefined) {
-      return res.status(400).end();
-    }
     try {
-      await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
+      await FirebaseAdmin.getInstance().Auth.verifyIdToken(token!);
     } catch (err) {
       return res.status(400).end();
     }
