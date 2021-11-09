@@ -181,6 +181,34 @@ class EventType {
 
   /** 주문 제거 */
   async removeOrder(args: { eventId: string; guestId: string }) {
+    const eventDoc = this.EventDoc(args.eventId);
+    const orderCollection = this.OrdersCollection(args.eventId);
+    const deletedDoc = orderCollection.doc(args.guestId);
+
+    await FirebaseAdmin.getInstance().Firestore.runTransaction(async (transaction) => {
+      const doc = await transaction.get(eventDoc);
+      if (doc.exists === false) {
+        throw new Error('not exist event');
+      }
+      const docData = doc.data() as IEvent;
+      if (docData.closed !== undefined && docData.closed === true) {
+        throw new Error('closed event');
+      }
+      if (docData.lastOrder !== undefined) {
+        const now = new Date();
+        const closedDate = new Date(docData.lastOrder);
+        if (now.getTime() >= closedDate.getTime()) {
+          throw new Error('closed event');
+        }
+      }
+      const deletingOrder = await transaction.get(deletedDoc);
+      console.log(deletingOrder.data());
+      if (deletingOrder.data() === undefined) {
+        throw new Error('not exist guest order');
+      }
+      await transaction.delete(deletedDoc);
+    });
+
     // 주문 마감 여부는 이미 체크했다는 전제
     if (this.orders.has(args.eventId) === false) {
       await this.findOrders({ eventId: args.eventId });
@@ -188,14 +216,15 @@ class EventType {
     const updateArr = this.orders.get(args.eventId);
     // 기존에 데이터가 없다면?
     if (updateArr === undefined) {
-      return;
+      throw new Error('not exist Evnet');
     }
     const findIdx = updateArr.findIndex((fv) => fv.guestId === args.guestId);
     // 주문이 있을 때만!
     if (findIdx >= 0) {
-      await this.OrdersCollection(args.eventId).doc(args.guestId).delete();
       await this.updateCache({ eventId: args.eventId });
     }
+    // 메모리에 없더라도 DB에서는 지웠으니 성공
+    return { message: 'delete success' };
   }
 }
 
