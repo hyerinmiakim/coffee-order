@@ -188,7 +188,7 @@ class EventType {
     await FirebaseAdmin.getInstance().Firestore.runTransaction(async (transaction) => {
       const transactedDoc = await transaction.get(eventDoc);
       const transactedOrderCollection = await transaction.get(orderCollection);
-      const transactedOrderDoc: any = await transaction.get(orderDoc);
+      const transactedOrderDoc = await transaction.get(orderDoc);
 
       // 주문 마감 여부는 이미 체크했다는 전제
       if (transactedDoc.exists === false) {
@@ -214,7 +214,7 @@ class EventType {
       const findIdx = updateArr.findIndex((fv) => fv.guestId === args.guestId);
       // 주문이 있을 때만!
       if (findIdx >= 0) {
-        await transaction.delete(transactedOrderDoc);
+        await transaction.delete(orderDoc);
         await this.updateCache({ eventId: args.eventId });
       }
     });
