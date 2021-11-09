@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import debug from '../utils/debug_log';
 
 import FirebaseAdmin from './commons/firebase_admin.model';
@@ -184,6 +185,34 @@ class EventType {
 
   /** 주문 제거 */
   async removeOrder(args: { eventId: string; guestId: string }) {
+    const eventDoc = this.EventDoc(args.eventId);
+    const orderCollection = this.OrdersCollection(args.eventId);
+    const oldDoc = orderCollection.doc(args.guestId);
+
+    await FirebaseAdmin.getInstance().Firestore.runTransaction(async (transaction) => {
+      log('LOG:트랜잭션 시작');
+      const doc = await transaction.get(eventDoc);
+      if (doc.exists === false) {
+        throw new Error('not exist event');
+      }
+      log('LOG:doc 존재함');
+      /* 닫힌 이벤트일 경우 주문을 제거하지 않도록 했습니다. */
+      const docData = doc.data() as IEvent;
+      // 이벤트가 closed 되었는지 확인한다.
+      if (docData.closed !== undefined && docData.closed === true) {
+        throw new Error('closed event');
+      }
+      log('LOG:닫힌 주문');
+      /* 해당하는 주문이 존재하는지 확인합니다. */
+      const orderDocFromTransaction = await transaction.get(oldDoc);
+      if (orderDocFromTransaction.exists === false) {
+        throw new Error('not exist order');
+      }
+      log('LOG:주문이 존재함');
+      /* 주문을 삭제합니다. */
+      await transaction.delete(oldDoc);
+    });
+    /* this.orders 에 정보가 담겨있는지 확인하고 갱신합니다.  */
     // 주문 마감 여부는 이미 체크했다는 전제
     if (this.orders.has(args.eventId) === false) {
       await this.findOrders({ eventId: args.eventId });
@@ -194,9 +223,10 @@ class EventType {
       return;
     }
     const findIdx = updateArr.findIndex((fv) => fv.guestId === args.guestId);
+    /* this.orders DB에서 삭제를 시작합니다. */
     // 주문이 있을 때만!
     if (findIdx >= 0) {
-      await this.OrdersCollection(args.eventId).doc(args.guestId).delete();
+      // await this.OrdersCollection(args.eventId).doc(args.guestId).delete();
       await this.updateCache({ eventId: args.eventId });
     }
   }
