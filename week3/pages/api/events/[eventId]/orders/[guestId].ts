@@ -1,3 +1,4 @@
+import EventController from '@/controllers/event/event.controller';
 import { NextApiRequest, NextApiResponse } from 'next';
 import debug from '../../../../../utils/debug_log';
 
@@ -7,5 +8,9 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
   // eslint-disable-next-line no-console
   const { method } = req;
   log(method);
-  res.status(400).send('bad request');
+  if (method === 'DELETE') {
+    await EventController.deleteOrder(req, res);
+  } else {
+    res.status(400).send('bad request');
+  }
 }
