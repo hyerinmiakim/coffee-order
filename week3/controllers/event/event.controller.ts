@@ -11,6 +11,8 @@ import { JSCFindEvent } from './jsc/JSCFindEvent';
 import { JSCUpdateEvent } from './jsc/JSCUpdateEvent';
 import { Events } from '../../models/events.model';
 import FirebaseAdmin from '../../models/commons/firebase_admin.model';
+import { IAddOrderReq } from './interface/IAddOrderReq';
+import { JSCAddOrder } from './jsc/JSCAddOrder';
 
 const log = debug('massa:controller:event');
 
@@ -128,6 +130,65 @@ export default class EventController {
       res.json(result);
     } catch (err) {
       return res.status(404).end();
+    }
+  }
+
+  static async findOrders(req: Request, res: Response) {
+    const validateReq = validateParamWithData<IFindEventReq>({ params: req.query }, JSCFindEvent);
+
+    if (validateReq.result === false) {
+      return res.status(400).json({
+        text: validateReq.errorMessage,
+      });
+    }
+
+    try {
+      await Events.find({ eventId: validateReq.data.params.eventId });
+      const result = await Events.findOrders({ eventId: validateReq.data.params.eventId });
+      return res.json(result);
+    } catch (err) {
+      if (err instanceof Error) {
+        return res.status(500).send(err.toString());
+      }
+    }
+  }
+
+  static async addOrder(req: Request, res: Response) {
+    const token = req.headers.authorization;
+    if (token === undefined) {
+      return res.status(400).end();
+    }
+    try {
+      await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
+    } catch (err) {
+      if (err instanceof Error) {
+        return res.status(400).end();
+      }
+    }
+    const validateReq = validateParamWithData<IAddOrderReq>(
+      {
+        params: req.query,
+        body: req.body,
+      },
+      JSCAddOrder,
+    );
+
+    if (validateReq.result === false) {
+      return res.status(400).send({
+        text: validateReq.errorMessage,
+      });
+    }
+
+    try {
+      const result = await Events.addOrder({
+        eventId: validateReq.data.params.eventId,
+        order: validateReq.data.body.order,
+      });
+      return res.json(result);
+    } catch (err) {
+      if (err instanceof Error) {
+        return res.status(500).send(err.toString());
+      }
     }
   }
 }

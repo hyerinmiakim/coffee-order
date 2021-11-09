@@ -1,3 +1,4 @@
+import EventController from '@/controllers/event/event.controller';
 import { NextApiRequest, NextApiResponse } from 'next';
 import debug from '../../../../../utils/debug_log';
 
@@ -7,5 +8,15 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
   // eslint-disable-next-line no-console
   const { method } = req;
   log(method);
-  res.status(400).send('bad request');
+
+  const supportMethod = ['POST', 'GET'];
+  if (supportMethod.indexOf(method!) === -1) {
+    return res.status(400).end();
+  }
+  if (method === 'GET') {
+    await EventController.findOrders(req, res);
+  }
+  if (method === 'POST') {
+    await EventController.addOrder(req, res);
+  }
 }
