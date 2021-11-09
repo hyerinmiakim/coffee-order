@@ -181,17 +181,17 @@ class EventType {
 
   /** 주문 제거 */
   async removeOrder(args: { eventId: string; guestId: string }) {
-    const eventDoc = this.EventDoc(args.eventId);
+    const eventRef = this.EventDoc(args.eventId);
     const orderCollection = this.OrdersCollection(args.eventId);
     const orderDoc = orderCollection.doc(args.guestId);
 
     await FirebaseAdmin.getInstance().Firestore.runTransaction(async (transaction) => {
-      const transactedDoc = await transaction.get(eventDoc);
+      const transactedEventRef = await transaction.get(eventRef);
       const transactedOrderCollection = await transaction.get(orderCollection);
       const transactedOrderDoc = await transaction.get(orderDoc);
 
       // 주문 마감 여부는 이미 체크했다는 전제
-      if (transactedDoc.exists === false) {
+      if (transactedEventRef.exists === false) {
         throw new Error('event docs does not exist');
       }
 
