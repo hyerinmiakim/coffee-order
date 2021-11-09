@@ -72,7 +72,8 @@ class BeveragesType {
   /** 음료 생성 */
   async add(args: { title: string; alias?: string }) {
     log(args);
-    const namesDoc = await this.BeverageDoc(this.BEVERAGE_NAMES).get();
+    const namesDocRef = this.BeverageDoc(this.BEVERAGE_NAMES);
+    const namesDoc = await namesDocRef.get();
     // 기존에 추가되어있는지 확인
     if (namesDoc.exists === true) {
       const nameArr = namesDoc.data() as {
@@ -90,15 +91,22 @@ class BeveragesType {
       title: args.title,
       alias: args.alias ?? '',
     });
-    if (namesDoc.exists === true) {
-      const nameArr = namesDoc.data() as {
-        names: { title: string; id: string }[];
-      };
-      const addData = { title: args.title, id: result.id };
+    const addData = { title: args.title, id: result.id };
+    await this.addToCache(addData);
+    await FirebaseAdmin.getInstance().Firestore.runTransaction(async (transaction) => {
+      // names 문서를 불러온다.
+      const doc = await transaction.get(namesDocRef);
+      const nameArr =
+        doc.exists === false // names 문서나?
+          ? { names: [] } // 없다면 빈 배열을 가진다.
+          : // 있다면 data에서 값을 읽어드린다.
+            (namesDoc.data() as {
+              names: { title: string; id: string }[];
+            });
       const newNameArr = [...nameArr.names, { title: args.title, id: result.id }];
-      await this.addToCache(addData);
-      await this.BeverageDoc(this.BEVERAGE_NAMES).update({ names: newNameArr });
-    }
+      // addToCache와 상관없이 읽어드린 db 문서를 기준으로 값을 넣는다.
+      transaction.set(namesDocRef, { names: newNameArr });
+    });
     return {
       id: result.id,
       title: args.title,
