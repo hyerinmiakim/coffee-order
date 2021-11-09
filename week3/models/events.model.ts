@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import debug from '../utils/debug_log';
 
 import FirebaseAdmin from './commons/firebase_admin.model';
@@ -184,16 +185,58 @@ class EventType {
 
   /** 주문 제거 */
   async removeOrder(args: { eventId: string; guestId: string }) {
+    const eventDoc = this.EventDoc(args.eventId);
+    const orderCollection = this.OrdersCollection(args.eventId);  
+    const oldDoc = orderCollection.doc(args.guestId);
+
+    await FirebaseAdmin.getInstance().Firestore.runTransaction(async(transaction)=>{
+      const doc=await transaction.get(eventDoc);
+      // 해당 event가 존재하는지 확인
+      if(doc.exists===false){
+        throw new Error('not exist event');
+      }
+      
+      // event document의 마감 여부 확인
+      const docData=doc.data() as IEvent;
+      if(docData.closed!==undefined && docData.closed===true){
+        throw new Error('closed event');
+      }
+      if (docData.lastOrder !== undefined) {
+        const now = new Date();
+        const closedDate = new Date(docData.lastOrder);
+        if (now.getTime() >= closedDate.getTime()) {
+          throw new Error('closed event');
+        }
+      }
+      // 존재하는 주문인지 확인
+      const oldDocData=await transaction.get(oldDoc);
+      if(oldDocData.exists===false){
+        throw new Error('not exist order');
+      }
+      // orders collection에서 주문 삭제
+      await transaction.delete(oldDoc);      
+    });
+    
+    
     // 주문 마감 여부는 이미 체크했다는 전제
     if (this.orders.has(args.eventId) === false) {
       await this.findOrders({ eventId: args.eventId });
     }
-    const updateArr = this.orders.get(args.eventId);
+    //this.orders : FireStore에서 읽어온 key(eventId):value(order document) 형태로 들어있다.
+    const updateArr = this.orders.get(args.eventId);  //key로 value값을 찾아옴 from this.orders
     // 기존에 데이터가 없다면?
     if (updateArr === undefined) {
       return;
     }
+    /*
+    fv : firestore에서 읽어온 데이터 | args : delete에서 요청한 데이터
+    남아있는 주문의 guestId와, 현재 delete 날리는 사람이 다르면 -> findIdx : -1
+    */
     const findIdx = updateArr.findIndex((fv) => fv.guestId === args.guestId);
+
+    /* 
+    TODO : 여기 질문 - 아래의 if 문 안으로 들어가는 경우가 없다..?
+    */
     // 주문이 있을 때만!
     if (findIdx >= 0) {
       await this.OrdersCollection(args.eventId).doc(args.guestId).delete();

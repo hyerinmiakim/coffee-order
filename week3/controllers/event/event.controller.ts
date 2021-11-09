@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { NextApiRequest as Request, NextApiResponse as Response } from 'next';
 
 import debug from '../../utils/debug_log';
@@ -13,6 +14,8 @@ import { Events } from '../../models/events.model';
 import FirebaseAdmin from '../../models/commons/firebase_admin.model';
 import { IAddOrderReq } from './interface/IAddOrderReq';
 import { JSCAddOrder } from './jsc/JSCAddOrder';
+import { JSCRemoveOrder } from './jsc/JSCRemoveOrder';
+import { IRemoveOrderReq } from './interface/IRemoveOrderReq';
 
 const log = debug('massa:controller:event');
 
@@ -187,6 +190,43 @@ export default class EventController {
       return res.json(result);
     } catch (err) {
       return res.status(500).send((err as any).toString());
+    }
+  }
+
+  /* deleteOrder 추가 */
+  static async deleteOrder(req:Request, res: Response){
+    const token = req.headers.authorization;
+    if (token === undefined) {
+      return res.status(400).end();
+    }
+    try {
+      await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
+    } catch (err) {
+      return res.status(400).end();
+    }
+
+    // 요청 데이터 형식 검사
+    const validateReq = validateParamWithData<IRemoveOrderReq>( 
+      {
+        params: req.query,  // eventId, guestId
+      },
+      JSCRemoveOrder,
+    );
+    if (validateReq.result === false) {
+      return res.status(400).send({
+        text: validateReq.errorMessage,
+      });
+    }
+    try {
+      // 주문 삭제 코드
+      await Events.removeOrder({
+        eventId: validateReq.data.params.eventId,
+        guestId: validateReq.data.params.guestId,
+      });
+      // return res.json(result);
+      return res.status(200).send('deleted successfully');
+    } catch (err:any) {
+      return res.status(500).send(err.toString());
     }
   }
 }

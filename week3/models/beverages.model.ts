@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import debug from '../utils/debug_log';
 import { IBeverage } from './interface/IEvent';
 
@@ -59,6 +60,19 @@ class BeveragesType {
     this.beverages = [...allBeverage, data];
     return this.beverages;
   }
+  /*
+  요기 고친 부분! - 함수 인자로 받은 addData 형태 그대로 FireStore에 작성하기 때문에,
+  this.beverages 안에 아무것도 없다면 addData(data)를 그대로 넣어도 되겠다고 생각했습니다.
+
+  async addToCache(data: IBeverage) {
+    if (this.beverages.length > 0) {
+      this.beverages.push(data);
+      return this.beverages;
+    }
+    this.beverages=[data];
+    return this.beverages;
+  }
+  */
 
   /** 음료 조회 */
   async find({ beverageId }: { beverageId: string }): Promise<IBeverage> {
