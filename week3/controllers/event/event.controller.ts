@@ -13,11 +13,13 @@ import { Events } from '../../models/events.model';
 import FirebaseAdmin from '../../models/commons/firebase_admin.model';
 import { IAddOrderReq } from './interface/IAddOrderReq';
 import { JSCAddOrder } from './jsc/JSCAddOrder';
+import { IRemoveOrderReq } from './interface/IRemoveOrderReq';
+import { JSCRemoveOrder } from './jsc/JSCRemoveOrder';
 
 const log = debug('massa:controller:event');
 
 export default class EventController {
-  static async addEvent(req: Request, res: Response) {
+  static async addEvent(req: Request, res: Response): Promise<Response | void> {
     const token = req.headers.authorization;
     if (token === undefined) {
       return res.status(400).end();
@@ -53,7 +55,7 @@ export default class EventController {
     }
   }
 
-  static async updateEvent(req: Request, res: Response) {
+  static async updateEvent(req: Request, res: Response): Promise<Response | void> {
     const token = req.headers.authorization;
     if (token === undefined) {
       return res.status(400).end();
@@ -102,7 +104,7 @@ export default class EventController {
     }
   }
 
-  static async findEvent(req: Request, res: Response) {
+  static async findEvent(req: Request, res: Response): Promise<Response | void> {
     const validateReq = validateParamWithData<IFindEventReq>(
       {
         params: req.query,
@@ -133,7 +135,7 @@ export default class EventController {
     }
   }
 
-  static async findOrders(req: Request, res: Response) {
+  static async findOrders(req: Request, res: Response): Promise<Response | void> {
     const validateReq = validateParamWithData<IFindEventReq>({ params: req.query }, JSCFindEvent);
 
     if (validateReq.result === false) {
@@ -153,7 +155,7 @@ export default class EventController {
     }
   }
 
-  static async addOrder(req: Request, res: Response) {
+  static async addOrder(req: Request, res: Response): Promise<Response | void> {
     const token = req.headers.authorization;
     if (token === undefined) {
       return res.status(400).end();
@@ -183,6 +185,46 @@ export default class EventController {
       const result = await Events.addOrder({
         eventId: validateReq.data.params.eventId,
         order: validateReq.data.body.order,
+      });
+      return res.json(result);
+    } catch (err) {
+      if (err instanceof Error) {
+        return res.status(500).send(err.toString());
+      }
+    }
+  }
+
+  static async deleteOrder(req: Request, res: Response): Promise<Response | void> {
+    const token = req.headers.authorization;
+    if (token === undefined) {
+      return res.status(400).end();
+    }
+    try {
+      await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
+    } catch (err) {
+      console.log(err);
+      if (err instanceof Error) {
+        return res.status(400).end();
+      }
+    }
+    const validateReq = validateParamWithData<IRemoveOrderReq>(
+      {
+        params: req.query,
+        body: req.body,
+      },
+      JSCRemoveOrder,
+    );
+
+    if (validateReq.result === false) {
+      return res.status(400).send({
+        text: validateReq.errorMessage,
+      });
+    }
+
+    try {
+      const result = await Events.removeOrder({
+        eventId: validateReq.data.params.eventId,
+        guestId: validateReq.data.params.guestId,
       });
       return res.json(result);
     } catch (err) {
