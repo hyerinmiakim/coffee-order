@@ -1,6 +1,5 @@
 /* eslint-disable prettier/prettier */
 import { NextApiRequest as Request, NextApiResponse as Response } from 'next';
-import { JSONSchema6 } from 'json-schema';
 import debug from '../../utils/debug_log';
 import validateParamWithData from '../../models/commons/req_validator';
 
@@ -27,6 +26,7 @@ interface IVerifyTokenAndReturnId {
 }
 
 export default class EventController {
+  /* 토큰을 검증하는 메소드입니다. */
   static async verifyTokenAndReturnId(token: string | undefined): Promise<IVerifyTokenAndReturnId> {
     if (token === undefined) {
       return { ok: false, htmlStatus: 401, error: '해당 기능은 로그인 후에 사용하실 수 있습니다..' };
@@ -40,7 +40,7 @@ export default class EventController {
   }
 
   static async addEvent(req: Request, res: Response) {
-    // 토큰을 검증하는 과정을 verifyTokenAndReturnId 메소드에 작성했습니다.
+    /* 토큰을 검증하는 과정을 verifyTokenAndReturnId 메소드에 작성했습니다. */
     const token = req.headers.authorization;
     const decodedIdToken = await this.verifyTokenAndReturnId(token);
     if (!decodedIdToken.ok) {
@@ -73,7 +73,7 @@ export default class EventController {
   }
 
   static async updateEvent(req: Request, res: Response) {
-    // 토큰을 검증하는 과정을 verifyTokenAndReturnId 메소드에 작성했습니다.
+    /* 토큰을 검증하는 과정을 verifyTokenAndReturnId 메소드에 작성했습니다. */
     const token = req.headers.authorization;
     const decodedIdToken = await this.verifyTokenAndReturnId(token);
     if (!decodedIdToken.ok) {
@@ -174,7 +174,7 @@ export default class EventController {
   }
 
   static async addOrder(req: Request, res: Response) {
-    // 토큰을 검증하는 과정을 verifyTokenAndReturnId 메소드에 작성했습니다.
+    /* 토큰을 검증하는 과정을 verifyTokenAndReturnId 메소드에 작성했습니다. */
     const token = req.headers.authorization;
     const decodedIdToken = await this.verifyTokenAndReturnId(token);
     if (!decodedIdToken.ok) {
@@ -208,14 +208,14 @@ export default class EventController {
   static async deleteOrder(req: Request, res: Response) {
     try {
       const { guestId, eventId } = (req.query as unknown) as { guestId: string; eventId: string };
-      // 토큰을 검증하는 과정을 verifyTokenAndReturnId 메소드에 작성했습니다.
+      /* 토큰을 검증하는 과정을 verifyTokenAndReturnId 메소드에 작성했습니다. */
       const token = req.headers.authorization;
       const decodedIdToken = await this.verifyTokenAndReturnId(token);
       if (!decodedIdToken.ok) {
         return res.status(400).json({ text: decodedIdToken.error });
       }
       const userId = decodedIdToken?.userId;
-      // 로그인한 유저가 주문을 생성한 사람일 때만 삭제할 수 있습니다.
+      /* 로그인한 유저가 주문을 생성한 사람일 때만 삭제할 수 있습니다. */
       if (guestId !== `${userId}`) {
         return res.status(403).json({ text: '주문을 작성한 유저만 삭제하실 수 있습니다.' });
       }
