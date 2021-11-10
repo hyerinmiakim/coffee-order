@@ -12,92 +12,81 @@ const log = debug('masa:api:events:[eventId]:index');
 
 export default async function handle(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   // eslint-disable-next-line no-console
-  const { method, query } = req;
+  const { method } = req;
   log(method);
-
   const supportMethod = ['PUT', 'GET'];
   if (supportMethod.indexOf(method!) === -1) {
     return res.status(400).end();
   }
-  if (method === 'GET') {
-    // 검증
-    const validateReq = validateParamWithData<IFindEventReq>(
-      {
-        params: req.query as any,
-      },
-      JSCFindEvent,
-    );
-    if (validateReq.result === false) {
-      return res.status(400).json({
-        text: validateReq.errorMessage,
-      });
-    }
-    log(`validateReq.result: ${validateReq.result}`);
 
-    // 데이터 조작(READ)
-    const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(validateReq.data.params.eventId);
-    const doc = await ref.get();
-    // 문서가 존재하지않는가?
-    if (doc.exists === false) {
-      res.status(404).end('문서가 없어요');
-      return;
-    }
-    const returnValue = {
-      ...doc.data(),
-      id: validateReq.data.params.eventId,
-    };
-    res.json(returnValue);
-  }
+  //반환값 변수명 선언
+  let returnValue;
 
-  // PUT 메서드 처리
-  if (method === 'PUT') {
-    // 코드 복사 후 IUpdateEventReq, JSCUpdateEvent 2가지는 import 시켜야합니다.
+  // method에 따라 다른 validateReq값을 반환하는 함수
+  const getValidateReq = () =>
+    method === 'GET'
+      ? validateParamWithData<IFindEventReq>(
+          {
+            params: req.query as any,
+          },
+          JSCFindEvent,
+        )
+      : validateParamWithData<IUpdateEventReq>(
+          {
+            params: req.query as any,
+            body: req.body,
+          },
+          JSCUpdateEvent,
+        );
+
+  //PUT method의 경우 토큰값을 검사하는 함수 (인증, 인가)
+  const validateToken = async (eventInfo: IEvent) => {
+    let userId;
     const token = req.headers.authorization;
-    if (token === undefined) {
-      return res.status(400).end('token?');
-    }
-    let userId = '';
+    if (token === undefined) return res.status(400).end();
     try {
       const decodedIdToken = await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
       userId = decodedIdToken.uid;
     } catch (err) {
       return res.status(400).end('이상한 토큰');
     }
-
-    const validateReq = validateParamWithData<IUpdateEventReq>(
-      {
-        params: req.query as any,
-        body: req.body,
-      },
-      JSCUpdateEvent,
-    );
-    log(req.body);
-    if (validateReq.result === false) {
-      return res.status(400).json({
-        text: validateReq.errorMessage,
-      });
-    }
-    const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(validateReq.data.params.eventId);
-    const doc = await ref.get();
-    // 문서가 존재하지않는가?
-    if (doc.exists === false) {
-      res.status(404).end();
-    }
-    const eventInfo = doc.data() as IEvent; // doc.data() 결과를 IEvent 인터페이스로 캐스팅
     if (eventInfo.ownerId !== userId) {
       return res.status(401).json({
-        text: '이벤트 수정 권한이 없습니다',
+        text: '이벤트 수정 권한이 없습니다.',
       });
     }
+  };
 
-    // eventInfo.closed = validateReq.data.body.closed ?? false;
-    // 업데이트할 값
-    const updateData = {
+  const validateReq = getValidateReq();
+
+  if (validateReq.result === false) {
+    return res.status(400).json({
+      text: validateReq.errorMessage,
+    });
+  }
+
+  const ref = FirebaseAdmin.getInstance().Firestore.collection('events').doc(validateReq.data.params.eventId);
+  const doc = await ref.get();
+  if (doc.exists === false) {
+    res.status(404).end('문서가 없어요');
+  }
+
+  if (method === 'PUT') {
+    const eventInfo = doc.data() as IEvent;
+    validateToken(eventInfo);
+    //method가 PUT일 경우의 반환값
+    returnValue = {
       ...eventInfo,
       ...validateReq.data.body,
     };
-    // 문서에 변경할 값을 넣어줍니다.
-    await ref.update(updateData);
-    res.json(updateData);
+    await ref.update(returnValue);
+  } else {
+    //method가 GET일 경우의 반환값
+    returnValue = {
+      ...doc.data(),
+      id: validateReq.data.params.eventId,
+    };
   }
+
+  res.json(returnValue);
 }
