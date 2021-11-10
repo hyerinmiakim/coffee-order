@@ -184,6 +184,7 @@ class EventType {
 
   /** 주문 제거 */
   async removeOrder(args: { eventId: string; guestId: string }) {
+
     // 주문 마감 여부는 이미 체크했다는 전제
     if (this.orders.has(args.eventId) === false) {
       await this.findOrders({ eventId: args.eventId });
@@ -193,6 +194,7 @@ class EventType {
     if (updateArr === undefined) {
       return;
     }
+
     const findIdx = updateArr.findIndex((fv) => fv.guestId === args.guestId);
     // 주문이 있을 때만!
     if (findIdx >= 0) {
