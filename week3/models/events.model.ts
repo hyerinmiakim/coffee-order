@@ -184,6 +184,20 @@ class EventType {
 
   /** 주문 제거 */
   async removeOrder(args: { eventId: string; guestId: string }) {
+    const eventDoc = this.EventDoc(args.eventId);
+
+    //주문 마감 확인 transaction
+    await FirebaseAdmin.getInstance().Firestore.runTransaction(async (transaction) => {
+      const doc = await transaction.get(eventDoc);
+      if (doc.exists === false) {
+        throw new Error('not exist event');
+      }
+      const docData = doc.data() as IEvent;
+      // 이벤트가 closed 되었는지 확인한다.
+      if (docData.closed !== undefined && docData.closed === true) {
+        throw new Error('closed event');
+      }
+    });
     // 주문 마감 여부는 이미 체크했다는 전제
     if (this.orders.has(args.eventId) === false) {
       await this.findOrders({ eventId: args.eventId });
