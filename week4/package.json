@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "PROFILE=develop next -p 4001",
-    "dev:debug": "NODE_OPTIONS='--inspect' next dev",
+    "dev:debug": "NODE_OPTIONS='--inspect' next dev -p 4001",
     "build": "next build",
     "type-check": "tsc",
     "start": "next start"

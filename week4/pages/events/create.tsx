@@ -1,6 +1,6 @@
-/* eslint-disable jsx-a11y/label-has-associated-control */
+/* eslint-disable jsx-a11y/label-has-associated-control,jsx-a11y/no-static-element-interactions,jsx-a11y/click-events-have-key-events */
 import { GetServerSideProps, NextPage } from 'next';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import Layout from '@/components/Layout';
 import FirebaseAuthClient from '@/models/commons/firebase_auth_client.model';
@@ -10,26 +10,41 @@ import EventClientModel from '@/models/event.client.model';
 import { IAddEventReq } from '@/controllers/event/interface/IAddEventReq';
 import { IBeverage } from '@/models/interface/IEvent';
 import BeverageClientModel from '@/models/beverage.client.model';
-import SearchBeverage from '@/components/search_beverage';
+import { IMenuListItem } from '@/models/interface/IMenuListItem';
+import MenuListClientModel from '@/models/menuList.client.model';
+import { useAuth } from '@/context/auth_user.context';
+import CreateMenuList from '@/components/createMenuList';
 
 interface Props {
   beverages: IBeverage[];
 }
 
-const EventCreatePage: NextPage<Props> = ({ beverages: PropsBeverages }) => {
+const EventCreatePage: NextPage<Props> = ({ beverages }) => {
   const { showToast } = useDialog();
   const [title, updateTitle] = useState('');
   const [desc, updateDesc] = useState('');
   const [checkedClosedDate, updateCheckedClosedDate] = useState(false);
   const [checkedMenu, updateCheckedMenu] = useState(false);
-  const [beverages, updateBeverages] = useState(PropsBeverages);
-  const [selectedMenus, updateSelectedMenus] = useState<IBeverage[]>([]);
+
+  const [menuList, updateMenuList] = useState<IMenuListItem[]>([]);
+  const [selectedMenuList, updateSelectedMenuList] = useState<IMenuListItem | undefined>(undefined);
 
   const now = new Date();
   const after2hour = new Date();
   after2hour.setHours(after2hour.getHours() + 2);
   const [closedDate, updateClosedDate] = useState(getYYYYMMDD(getFormatDate(now)));
   const [closedTime, updateClosedTime] = useState(gethhmmss(getFormatDate(after2hour)));
+
+  const { authUser } = useAuth();
+
+  useEffect(() => {
+    if (authUser === null) return;
+    MenuListClientModel.findAll({}).then((resp) => {
+      if (resp.payload !== undefined && resp.payload.length >= 0) {
+        updateMenuList(resp.payload);
+      }
+    });
+  }, [authUser]);
 
   async function onSubmit() {
     if (FirebaseAuthClient.getInstance().Auth.currentUser === null) {
@@ -45,6 +60,10 @@ const EventCreatePage: NextPage<Props> = ({ beverages: PropsBeverages }) => {
       showToast('마감일자와 시간은 2021-08-09 09:01:11 형식으로 입력하세요.');
       return;
     }
+    if (checkedMenu && selectedMenuList === undefined) {
+      showToast('메뉴판을 선택해주세요.');
+      return;
+    }
     const addEventData: IAddEventReq['body'] = {
       title: trimTitle,
       desc: desc.trim(),
@@ -58,9 +77,8 @@ const EventCreatePage: NextPage<Props> = ({ beverages: PropsBeverages }) => {
     if (checkedClosedDate) {
       addEventData.lastOrder = new Date(`${closedDate} ${closedTime}`);
     }
-    // 메뉴를 특정해서 선택한 경우
-    if (checkedMenu && selectedMenus.length > 0) {
-      addEventData.menus = selectedMenus;
+    if (checkedMenu && selectedMenuList !== undefined) {
+      addEventData.menus = selectedMenuList.menu;
     }
     const resp = await EventClientModel.addEvent(addEventData);
     if (resp.status === 200 && resp.payload !== undefined) {
@@ -202,12 +220,16 @@ const EventCreatePage: NextPage<Props> = ({ beverages: PropsBeverages }) => {
           </span>
         </fieldset>
         {checkedMenu && (
-          <SearchBeverage
-            beverages={beverages}
-            updateBeverages={updateBeverages}
-            selectedMenus={selectedMenus}
-            updateSelectedMenus={updateSelectedMenus}
-          />
+          <>
+            {selectedMenuList && <p>{`선택된 메뉴판: ${selectedMenuList.title}`}</p>}
+            <CreateMenuList
+              beverages={beverages}
+              menuList={menuList}
+              onSelectMenuList={(list) => {
+                updateSelectedMenuList(list);
+              }}
+            />
+          </>
         )}
         <button
           id="button"
@@ -234,8 +256,6 @@ export const getServerSideProps: GetServerSideProps<Props> = async () => {
     console.log(err);
     return {
       props: {
-        event: null,
-        orders: [],
         beverages: [],
       },
     };
