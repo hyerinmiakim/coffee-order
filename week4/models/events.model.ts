@@ -66,6 +66,9 @@ class EventType {
         addData.lastOrder = args.lastOrder;
       }
       // TODO: args.menus가 존재한다면 값을 addData에 반영
+      if (args.menus !== undefined) {
+        addData.menus = args.menus;
+      }
       const result = await this.EventsStore.add(addData);
       return {
         id: result.id,

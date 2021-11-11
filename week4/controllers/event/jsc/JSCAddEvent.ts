@@ -54,6 +54,12 @@ export const JSCAddEvent: JSONSchema6 = {
         title: {
           type: 'string',
         },
+        menus: {
+          type: 'array',
+          items: {
+            $ref: '#/definitions/IBeverage',
+          },
+        },
       },
       required: ['owner', 'title'],
       type: 'object',
