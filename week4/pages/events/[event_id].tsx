@@ -310,25 +310,7 @@ const EventPage: NextPage<Props> = ({ event: propsEvent, orders: propsOrders, be
         )}
         <div className="mb-4">
           <p>전체 {orders.length} 잔</p>
-          {memoizedMyOrder.myOrder && (
-            <p>
-              내 주문: {memoizedMyOrder.myBeverage?.title}
-              <button
-                type="button"
-                className="rounded-xl bg-blue-300 text-white pl-2 pr-2"
-                onClick={async () => {
-                  if (authUser === null) return;
-                  await EventClientModel.deleteOrder({ eventId: event.id, guestId: authUser.uid });
-                  const newOrderList = await EventClientModel.orders({ eventId: event.id });
-                  if (newOrderList.status === 200 && newOrderList.payload !== undefined) {
-                    updateOrders(newOrderList.payload);
-                  }
-                }}
-              >
-                주문 취소
-              </button>
-            </p>
-          )}
+          {memoizedMyOrder.myOrder && <p>내 주문: {memoizedMyOrder.myBeverage?.title}</p>}
         </div>
         {propsEvent?.menus !== undefined && (
           <button

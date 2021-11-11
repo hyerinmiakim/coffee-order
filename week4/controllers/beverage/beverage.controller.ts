@@ -13,7 +13,7 @@ export default class BeverageController {
     }
     try {
       await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
-    } catch (err: any) {
+    } catch (err) {
       return res.status(400).end();
     }
     const validateReq = validateParamWithData<IAddBeverageReq>(

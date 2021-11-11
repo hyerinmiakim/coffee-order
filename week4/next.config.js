@@ -14,7 +14,6 @@ function getDomainHost() {
 const DOMAIN_HOST = getDomainHost();
 
 module.exports = {
-  swcMinify: true,
   env: {
     DOMAIN_HOST,
   },

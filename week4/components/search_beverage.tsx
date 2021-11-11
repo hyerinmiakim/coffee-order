@@ -29,20 +29,30 @@ const SearchBeverage: React.FC<Props> = ({ beverages, updateBeverages, selectedM
   const [matchBeverages, updateMatchBeverages] = useState<IBeverage[]>([]);
   const memoizedOrders = useMemo(() => reduceOrder({ beverages }), [beverages]);
 
+  function getMatchedBeverageList({
+    searchValue,
+    orderMap,
+  }: {
+    searchValue: string;
+    orderMap: Map<string, IBeverage>;
+  }) {
+    return [...orderMap.values()].filter((fv) => {
+      if (fv.title.indexOf(searchValue) >= 0) {
+        return true;
+      }
+      if (!!fv.alias && fv.alias.indexOf(searchValue) >= 0) {
+        return true;
+      }
+      return false;
+    });
+  }
+
   function onChangeInput(e: ChangeEvent<HTMLInputElement>) {
     const searchValue = e.currentTarget.value;
     updateSearchText(searchValue);
 
     if (memoizedOrders.mapBeverages.size > 0 && searchValue.length > 0) {
-      const searchedList = [...memoizedOrders.mapBeverages.values()].filter((fv) => {
-        if (fv.title.indexOf(searchValue) >= 0) {
-          return true;
-        }
-        if (!!fv.alias && fv.alias.indexOf(searchValue) >= 0) {
-          return true;
-        }
-        return false;
-      });
+      const searchedList = getMatchedBeverageList({ searchValue, orderMap: memoizedOrders.mapBeverages });
       updateMatchBeverages(searchedList);
     }
     if (searchValue.length <= 0) {
@@ -95,6 +105,12 @@ const SearchBeverage: React.FC<Props> = ({ beverages, updateBeverages, selectedM
               const beverageListResp = await BeverageClientModel.findAll({ page: 1, limit: 99 });
               if (beverageListResp.status === 200 && beverageListResp.payload !== undefined) {
                 updateBeverages(beverageListResp.payload);
+                const newOrderMap = reduceOrder({ beverages: beverageListResp.payload });
+                const searchedList = getMatchedBeverageList({
+                  searchValue: searchText,
+                  orderMap: newOrderMap.mapBeverages,
+                });
+                updateMatchBeverages(searchedList);
               }
             }}
           >
