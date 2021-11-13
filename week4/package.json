@@ -4,8 +4,8 @@
   "description": "익명 질문 서비스",
   "main": "index.js",
   "scripts": {
-    "dev": "PROFILE=develop next -p 4001",
-    "dev:debug": "NODE_OPTIONS='--inspect' next dev",
+    "dev": "cross-env PROFILE=develop next -p 4001",
+    "dev:debug": "cross-env NODE_OPTIONS='--inspect' next dev -p 4001",
     "build": "next build",
     "type-check": "tsc",
     "start": "next start"
@@ -34,6 +34,7 @@
     "@typescript-eslint/eslint-plugin": "^4.13.0",
     "@typescript-eslint/parser": "^4.13.0",
     "babel-eslint": "^10.1.0",
+    "cross-env": "^7.0.3",
     "eslint": "^7.18.0",
     "eslint-config-airbnb": "^18.2.1",
     "eslint-config-airbnb-base": "^14.2.1",

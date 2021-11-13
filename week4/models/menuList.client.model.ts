@@ -10,7 +10,6 @@ const log = debug('masa:model:MenuListClientModel');
 export default class MenuListClientModel {
   static async findAll({ host = '' }: { host?: string }) {
     const token = await FirebaseAuthClient.getInstance().Auth.currentUser?.getIdToken();
-    console.log(token);
     try {
       const resp = await requester<IMenuListItem[]>({
         option: {

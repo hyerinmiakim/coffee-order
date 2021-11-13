@@ -56,14 +56,18 @@ class MenuListType {
       addData.desc = desc;
     }
     // 추가
-    const result = await this.MenuListStore.add(addData);
-    return {
-      id: result.id,
-      title,
-      desc,
-      ownerId,
-      menu,
-    };
+    try {
+      const result = await this.MenuListStore.add(addData);
+      return {
+        id: result.id,
+        title,
+        desc,
+        ownerId,
+        menu,
+      };
+    } catch (err) {
+      throw new Error('invalid request');
+    }
   }
 
   async update({
