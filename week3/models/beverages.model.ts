@@ -1,3 +1,4 @@
+import MyApp from '@/pages/_app';
 import debug from '../utils/debug_log';
 import { IBeverage } from './interface/IEvent';
 
@@ -56,7 +57,7 @@ class BeveragesType {
         } as IBeverage;
         return returnData;
       });
-    this.beverages = [...allBeverage, data];
+    this.beverages = [data, ...allBeverage.filter((d) => d.id !== data.id)];
     return this.beverages;
   }
 
