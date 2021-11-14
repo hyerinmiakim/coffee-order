@@ -1,4 +1,3 @@
-import { transcode } from 'buffer';
 import debug from '../utils/debug_log';
 
 import FirebaseAdmin from './commons/firebase_admin.model';
