@@ -1,3 +1,4 @@
+import { transcode } from 'buffer';
 import debug from '../utils/debug_log';
 
 import FirebaseAdmin from './commons/firebase_admin.model';
@@ -185,6 +186,18 @@ class EventType {
   /** 주문 제거 */
   async removeOrder(args: { eventId: string; guestId: string }) {
     // 주문 마감 여부는 이미 체크했다는 전제
+    // const eventDoc = this.EventDoc(args.eventId);
+    const orderCollection = this.OrdersCollection(args.eventId);
+    const orderDoc = orderCollection.doc(args.guestId);
+
+    await FirebaseAdmin.getInstance().Firestore.runTransaction(async (transaction) => {
+      const doc = await transaction.get(orderDoc);
+      if (doc.exists === false) {
+        throw new Error('not exist order');
+      }
+      await transaction.delete(orderDoc);
+    });
+
     if (this.orders.has(args.eventId) === false) {
       await this.findOrders({ eventId: args.eventId });
     }
@@ -196,7 +209,7 @@ class EventType {
     const findIdx = updateArr.findIndex((fv) => fv.guestId === args.guestId);
     // 주문이 있을 때만!
     if (findIdx >= 0) {
-      await this.OrdersCollection(args.eventId).doc(args.guestId).delete();
+      // await this.OrdersCollection(args.eventId).doc(args.guestId).delete();
       await this.updateCache({ eventId: args.eventId });
     }
   }
