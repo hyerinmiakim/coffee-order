@@ -1,9 +1,6 @@
 import { IBeverage } from '@/models/interface/IEvent';
+import { IMenuListItem } from '@/models/interface/IMenuListItem';
 
 export interface IAddMenuList {
-  body: {
-    title: string;
-    desc?: string;
-    menu: IBeverage[];
-  };
+  body: Pick<IMenuListItem, 'title' | 'desc' | 'menu'>;
 }
