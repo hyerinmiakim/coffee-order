@@ -9,14 +9,15 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
   // eslint-disable-next-line no-console
   const { method } = req;
   log(method);
-  const supportMethod = ['GET', 'POST'];
+  const supportMethod = ['GET', 'POST', 'PUT'];
   if (supportMethod.indexOf(method!) === -1) {
     return res.status(400).end();
   }
+  const controller = new MenuListController();
   if (method === 'POST') {
-    await MenuListController.addMenuList(req, res);
+    await controller.addMenuList(req, res);
   }
   if (method === 'GET') {
-    await MenuListController.findAllByOwnerId(req, res);
+    await controller.findAllByOwnerId(req, res);
   }
 }

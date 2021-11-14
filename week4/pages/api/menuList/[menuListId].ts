@@ -12,7 +12,8 @@ export default async function handle(req: NextApiRequest, res: NextApiResponse):
   if (supportMethod.indexOf(method!) === -1) {
     return res.status(400).end();
   }
+  const controller = new MenuListController();
   if (method === 'PUT') {
-    await MenuListController.updateMenuList(req, res);
+    await controller.updateMenuList(req, res);
   }
 }
