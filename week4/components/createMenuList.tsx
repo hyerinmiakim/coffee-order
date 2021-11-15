@@ -99,6 +99,10 @@ const CreateMenuList: React.FC<Props> = ({ beverages: PropsBeverages, menuList: 
         ? MenuListClientModel.create({ menuListName, beverages: selectedMenus })
         : MenuListClientModel.update({ id: modifyId!, menuListName, beverages: selectedMenus });
     const resp = await action;
+    if (resp.status !== 200 && resp.status !== 201) {
+      showToast(`문제가 발생하여 실패했습니다. ${resp.error?.data}`);
+      return;
+    }
     if (mutationMode === 'CREATE' && resp.payload !== undefined) {
       updateMenuList((origin) => [...origin, resp.payload!]);
     }
@@ -118,11 +122,9 @@ const CreateMenuList: React.FC<Props> = ({ beverages: PropsBeverages, menuList: 
         return updateOrigin;
       });
     }
-    if (resp.status === 200) {
-      updateTogglePopup(false);
-      updateMenuListName('');
-      updateSelectedMenus([]);
-    }
+    updateTogglePopup(false);
+    updateMenuListName('');
+    updateSelectedMenus([]);
   }
 
   const printedMenuList = (() => {
