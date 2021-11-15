@@ -1,5 +1,5 @@
-import MenuListController from '@/controllers/menuList/menu_list.controller';
 import { NextApiRequest, NextApiResponse } from 'next';
+import MenuListController from '@/controllers/menuList/menu_list.controller';
 import debug from '../../../utils/debug_log';
 
 const log = debug('masa:api:menuList:[userId]:[menuListId]');
