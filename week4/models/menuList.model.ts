@@ -82,8 +82,34 @@ class MenuListType {
     const docRef = this.MenuListDoc(id);
     await FirebaseAdmin.getInstance().Firestore.runTransaction(async (transaction) => {
       const doc = await transaction.get(docRef);
-      // TODO: 이부분에 어떤 코드가 들어가야할까요?
+      /* 1. 데이터가 존재하는지 확인합니다. */
+      if (!doc.exists) {
+        throw new Error('존재하지 않는 메뉴 리스트입니다.');
+      }
+      /* 2. 해당 데이터의 작성자가 로그인한 유저와 일치하는지 확인합니다. */
+      const menuListFromDoc = doc.data() as IMenuListItem;
+      if (menuListFromDoc.ownerId !== ownerId) {
+        throw new Error('작성자만 수정할 수 있습니다.');
+      }
+      /* 3. 값을 업데이트합니다. */
+      const updateValue = {};
+      // undefined 가 아닌지 확인 후, 존재한다면 객체에 넣어 업데이트에 활용합니다.
+      if (title !== undefined) Object.assign(updateValue, { title });
+      if (desc !== undefined) Object.assign(updateValue, { desc });
+      if (menu !== undefined) Object.assign(updateValue, { menu });
+
+      transaction.set(docRef, updateValue);
+
+      // this.menuList 의 내용을 갱신합니다.
+      this.menuList = this.menuList.map((val) => {
+        if (val.id === id) {
+          return { ...val, ...updateValue };
+        }
+        return val;
+      });
+      return;
     });
+    return;
   }
 
   async delete({ menuListId }: { menuListId: string }) {
