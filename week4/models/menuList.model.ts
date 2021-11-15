@@ -82,13 +82,13 @@ class MenuListType {
     desc?: string;
     menu?: IBeverage[];
   }) {
+    // title, desc, menu가 모두 undefined이면 할 일이 없으므로 그만둔다.
+    if (title === undefined && desc === undefined && menu === undefined) {
+      return;
+    }
+
     const menuListDocRef = this.MenuListDoc(id);
     await FirebaseAdmin.getInstance().Firestore.runTransaction(async (transaction) => {
-      // title, desc, menu가 모두 undefined이면 할 일이 없으므로 그만둔다.
-      if (title === undefined && desc === undefined && menu === undefined) {
-        return;
-      }
-
       // 문서가 존재하는지 확인한다.
       const menuListDoc = await transaction.get(menuListDocRef);
       if (menuListDoc.exists === false) {
