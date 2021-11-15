@@ -84,8 +84,8 @@ class MenuListType {
   }) {
     const menuListDocRef = this.MenuListDoc(id);
     await FirebaseAdmin.getInstance().Firestore.runTransaction(async (transaction) => {
-      // title, menu가 둘 다 undefined이면 할 일이 없으므로 그만둔다.
-      if (title === undefined && menu === undefined) {
+      // title, desc, menu가 모두 undefined이면 할 일이 없으므로 그만둔다.
+      if (title === undefined && desc === undefined && menu === undefined) {
         return;
       }
 
@@ -105,6 +105,7 @@ class MenuListType {
       await transaction.set(menuListDocRef, {
         ...menuListDocData,
         ...(title !== undefined && { title }),
+        ...(desc !== undefined && { desc }),
         ...(menu !== undefined && { menu }),
       });
     });
