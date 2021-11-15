@@ -1,9 +1,12 @@
+import debug from '../utils/debug_log';
+
 import FirebaseAdmin from './commons/firebase_admin.model';
 import { IBeverage } from './interface/IEvent';
 import { IMenuListItem } from './interface/IMenuListItem';
 
 const COLLECTION_NAME = 'menu_list';
 
+const log = debug('masa:model:MenuList');
 class MenuListType {
   private menuList: IMenuListItem[];
 
@@ -79,10 +82,31 @@ class MenuListType {
     desc?: string;
     menu?: IBeverage[];
   }) {
-    const docRef = this.MenuListDoc(id);
+    const menuListDocRef = this.MenuListDoc(id);
     await FirebaseAdmin.getInstance().Firestore.runTransaction(async (transaction) => {
-      const doc = await transaction.get(docRef);
-      // TODO: 이부분에 어떤 코드가 들어가야할까요?
+      // title, menu가 둘 다 undefined이면 할 일이 없으므로 그만둔다.
+      if (title === undefined && menu === undefined) {
+        return;
+      }
+
+      // 문서가 존재하는지 확인한다.
+      const menuListDoc = await transaction.get(menuListDocRef);
+      if (menuListDoc.exists === false) {
+        throw new Error('not exist menu list');
+      }
+
+      // 사용자 id가 문서의 ownerId와 같은지 확인한다.
+      const menuListDocData = menuListDoc.data() as Omit<IMenuListItem, 'id'>;
+      if (ownerId !== menuListDocData.ownerId) {
+        throw new Error('not your menu list');
+      }
+
+      // 문서를 업데이트한다.
+      await transaction.set(menuListDocRef, {
+        ...menuListDocData,
+        ...(title !== undefined && { title }),
+        ...(menu !== undefined && { menu }),
+      });
     });
   }
 
