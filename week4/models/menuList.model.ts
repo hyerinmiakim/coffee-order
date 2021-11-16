@@ -80,28 +80,28 @@ class MenuListType {
     menu?: IBeverage[];
   }) {
     const docRef = this.MenuListDoc(id);
+
     await FirebaseAdmin.getInstance().Firestore.runTransaction(async (transaction) => {
       const doc = await transaction.get(docRef);
-      if (doc.exists === false) {
-        throw new Error('not exist');
+      // TODO: 이부분에 어떤 코드가 들어가야할까요?
+
+      /* 1. 문서가 존재하는지 확인 */
+      if(doc.exists === false){
+        throw new Error('not exist menu list');
       }
-      const oldDoc = doc.data() as Omit<IMenuListItem, 'id'>;
-      if (ownerId !== oldDoc.ownerId) {
-        throw new Error('수정할 권한이 없음');
+      /* 2. 문서의 ownerId 와 사용자 id가 같은지 확인 */
+      const docData = doc.data() as IMenuListItem;
+      if(docData.ownerId !== ownerId){
+        throw new Error('You dont\'t have access to this menu list');
       }
-      const setData: Omit<IMenuListItem, 'id'> = {
-        ...oldDoc,
-      };
-      if (title !== undefined) {
-        setData.title = title;
+      /* 3. title, menu 가 존재한다면 해당 값을 반영하여 업데이트 */
+      if(title===undefined && menu===undefined){
+        throw new Error('Please put title & menu');
       }
-      if (desc !== undefined) {
-        setData.desc = desc;
-      }
-      if (menu !== undefined) {
-        setData.menu = menu;
-      }
-      await transaction.set(docRef, setData);
+
+      await transaction.update(docRef, {
+        title, menu,
+      });
     });
   }
 
