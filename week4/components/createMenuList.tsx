@@ -16,7 +16,8 @@ const DisplayMenuList: React.FC<{
   mv: IMenuListItem;
   onSelectMenuList: (list: IMenuListItem) => void;
   onClickModify: (origin: IMenuListItem) => void;
-}> = ({ mv, onSelectMenuList, onClickModify }) => {
+  onClickDelete: (orgin: IMenuListItem) => void;
+}> = ({ mv, onSelectMenuList, onClickModify, onClickDelete }) => {
   const { title, menu } = mv;
   const [toggle, updateToggle] = useState(false);
   return (
@@ -46,6 +47,15 @@ const DisplayMenuList: React.FC<{
           수정
         </button>
         <button
+          className="rounded-sm p-2 mr-2 text-white bg-purple-500 focus:outline-none"
+          type="button"
+          onClick={() => {
+            onClickDelete(mv);
+          }}
+        >
+          삭제
+        </button>
+        <button
           className="rounded-sm p-2 mr-2 text-white bg-pink-500 focus:outline-none"
           type="button"
           onClick={() => {
@@ -68,7 +78,7 @@ const CreateMenuList: React.FC<Props> = ({ beverages: PropsBeverages, menuList: 
 
   const [togglePopup, updateTogglePopup] = useState(false);
 
-  const [mutationMode, updateMutationMode] = useState<'CREATE' | 'MODIFY'>('CREATE');
+  const [mutationMode, updateMutationMode] = useState<'CREATE' | 'MODIFY' | 'DELETE'>('CREATE');
   const [modifyId, updateModifyId] = useState<string | undefined>(undefined);
 
   const [searchText, updateSearchText] = useState('');
@@ -94,10 +104,22 @@ const CreateMenuList: React.FC<Props> = ({ beverages: PropsBeverages, menuList: 
       showToast('메뉴를 최소 1개 이상 선택하세요');
       return;
     }
-    const action =
-      mutationMode === 'CREATE'
-        ? MenuListClientModel.create({ menuListName, beverages: selectedMenus })
-        : MenuListClientModel.update({ id: modifyId!, menuListName, beverages: selectedMenus });
+
+    let action;
+    switch (mutationMode) {
+      case 'CREATE':
+        action = MenuListClientModel.create({ menuListName, beverages: selectedMenus });
+        break;
+      case 'MODIFY':
+        action = MenuListClientModel.update({ id: modifyId!, menuListName, beverages: selectedMenus });
+        break;
+      case 'DELETE':
+        action = MenuListClientModel.delete({ id: modifyId! });
+        break;
+      default:
+        return;
+    }
+
     const resp = await action;
     if (mutationMode === 'CREATE' && resp.payload !== undefined) {
       updateMenuList((origin) => [...origin, resp.payload!]);
@@ -115,6 +137,18 @@ const CreateMenuList: React.FC<Props> = ({ beverages: PropsBeverages, menuList: 
           title: menuListName,
           menu: selectedMenus,
         });
+        return updateOrigin;
+      });
+    }
+    if (mutationMode === 'DELETE') {
+      updateMenuList((origin) => {
+        const findMenuListIndex = origin.findIndex((ofv) => ofv.id === modifyId);
+
+        if (findMenuListIndex === -1) {
+          return origin;
+        }
+        const updateOrigin = [...origin];
+        updateOrigin.splice(findMenuListIndex, 1);
         return updateOrigin;
       });
     }
@@ -136,8 +170,17 @@ const CreateMenuList: React.FC<Props> = ({ beverages: PropsBeverages, menuList: 
           updateModifyId(mv.id);
           updateMenuListName(mv.title);
           updateSelectedMenus(mv.menu);
+          console.log('>', mv.menu);
           updateMutationMode('MODIFY');
           updateTogglePopup(true);
+        }}
+        onClickDelete={async () => {
+          updateModifyId(mv.id);
+          updateMenuListName(mv.title);
+          updateSelectedMenus(mv.menu);
+          updateMutationMode('DELETE');
+          updateTogglePopup(false);
+          onSubmit();
         }}
       />
     ));

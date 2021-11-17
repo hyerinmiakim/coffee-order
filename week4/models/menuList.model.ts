@@ -105,8 +105,19 @@ class MenuListType {
     });
   }
 
-  async delete({ menuListId }: { menuListId: string }) {
-    await this.MenuListDoc(menuListId).delete();
+  async delete({ menuListId, ownerId }: { menuListId: string; ownerId: string }) {
+    const docRef = this.MenuListDoc(menuListId);
+    await FirebaseAdmin.getInstance().Firestore.runTransaction(async (transaction) => {
+      const doc = await transaction.get(docRef);
+      if (doc.exists === false) {
+        throw new Error('not exist');
+      }
+      const oldDoc = doc.data() as Omit<IMenuListItem, 'id'>;
+      if (ownerId !== oldDoc.ownerId) {
+        throw new Error('삭제할 권한이 없음');
+      }
+      await transaction.delete(docRef);
+    });
   }
 }
 

@@ -116,4 +116,43 @@ export default class MenuListController {
       return res.status(500);
     }
   }
+
+  static async deleteMenuList(req: Requst, res: Response) {
+    const token = req.headers.authorization;
+    if (token === undefined) {
+      return res.status(400).end();
+    }
+    let ownerId = '';
+    try {
+      const { uid } = await FirebaseAdmin.getInstance().Auth.verifyIdToken(token);
+      ownerId = uid;
+    } catch (err) {
+      return res.status(400).end();
+    }
+    const validateReq = validateParamWithData<IDeleteMenuListReq>(
+      {
+        params: req.query,
+      },
+      JSCDeleteMenuList,
+    );
+    log(req.params);
+    if (validateReq.result === false) {
+      return res.status(400).json({
+        text: validateReq.errorMessage,
+      });
+    }
+    try {
+      const reqParams = {
+        menuListId: validateReq.data.params.menuListId,
+        ownerId,
+      };
+      log({ ownerId, id: validateReq.data.params.menuListId });
+      await MenuListModel.delete(reqParams);
+      return res.status(200).json({
+        msg: 'delete success',
+      });
+    } catch (err) {
+      return res.status(500);
+    }
+  }
 }

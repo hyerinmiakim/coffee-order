@@ -95,4 +95,24 @@ export default class MenuListClientModel {
       };
     }
   }
+
+  static async delete({ id, host = '' }: { id: string; host?: string }) {
+    const token = await FirebaseAuthClient.getInstance().Auth.currentUser?.getIdToken();
+    try {
+      const resp = await requester<IMenuListItem>({
+        option: {
+          url: `${host}/api/menuList/${id}`,
+          method: 'delete',
+          headers: {
+            authorization: token,
+          },
+        },
+      });
+      return resp;
+    } catch (err) {
+      return {
+        status: 500,
+      };
+    }
+  }
 }
