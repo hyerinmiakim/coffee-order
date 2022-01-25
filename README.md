@@ -1,5 +1,6 @@
 # [2기] 실무와 가까워지는 Node.js 백엔드 개발(feat.TypeScript)
 ## with. 송요창 리더
+## By hyerin Kim
 
 미션요구사항, 세션 녹화본, 강의자료 등을 공유하는 학습공간은 [여기를 클릭](https://school.programmers.co.kr/app/courses/12886/dashboard) 하세요.
 
